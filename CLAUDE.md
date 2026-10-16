@@ -131,7 +131,7 @@ Avoid: `wip`, `fix stuff`, `update`, `changes`, `final`, or messages that only r
 
 Update at the end of each phase.
 
-- [ ] Phase 0: Scaffold
+- [x] Phase 0: Scaffold (2026-10-16; Sharad's "You do" tasks still open)
 - [ ] Phase 1: Corpus collection
 - [ ] Phase 2: Parse and chunk
 - [ ] Phase 3: Evaluation set
@@ -144,4 +144,10 @@ Update at the end of each phase.
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: 0. Notes for the next session: none yet.
+Current phase: 1 (not started). Notes for the next session:
+- Phase 0 built the scaffold: `rag` CLI with stubs, strict config, io/stats/provenance helpers, 40 tests. See `notes/phase-0-scaffold.md`.
+- D-001 to D-004 in DECISIONS.md are `proposed`, awaiting Sharad's review.
+- Open "You do" items: the `TODO(sharad)` config field (`src/rag/common/config.py`, `src/rag/collect/cli.py`) and the first JOURNAL.md entry.
+- Typer 0.27 vendors Click privately (`typer._click`): don't `import click`; use `typer.core` / `typer.testing`.
+- Local uv is 0.11.7 (docs describe 0.12+ defaults).
+- Phase 1: consider adding mypy (D-004).
