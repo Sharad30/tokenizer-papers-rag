@@ -1,0 +1,23 @@
+# Every tunable value in the project lives here (see CLAUDE.md: no magic
+# numbers in code). Validated by rag.common.config.Config; unknown keys are
+# errors. Each phase adds its own section when its decisions are made.
+
+# Stage folders. Each stage reads only the previous stage's folder and writes
+# its own, plus a stats.json. Relative to this file's directory.
+paths:
+  raw: data/raw            # Phase 1: cached API responses, PDFs (gitignored)
+  manifest: data/manifest  # Phase 1: corpus manifest (committed)
+  parsed: data/parsed      # Phase 2: sections, chunks, references (gitignored)
+  works: data/works        # Phase 5: work_id clusters (gitignored)
+  index: data/index        # Phase 4/6: BM25 + dense indexes (gitignored)
+  eval: eval               # Phase 3: questions.jsonl, pairs.jsonl (committed)
+  results: results         # Phase 4+: eval runs (committed)
+  figures: docs/figures    # Phase 4+: plots from `rag report` (committed)
+
+logging:
+  level: INFO              # DEBUG | INFO | WARNING | ERROR
+
+corpus:
+  # Collection cutoff. Papers after this date are ignored, so reruns are
+  # reproducible. PLAN.md's example value; confirm in Phase 1.
+  max_date: 2026-10-15

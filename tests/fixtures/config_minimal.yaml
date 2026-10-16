@@ -1,0 +1,14 @@
+# Synthetic config for tests: every section present, nothing extra.
+paths:
+  raw: out/raw
+  manifest: out/manifest
+  parsed: out/parsed
+  works: out/works
+  index: out/index
+  eval: out/eval
+  results: out/results
+  figures: out/figures
+logging:
+  level: DEBUG
+corpus:
+  max_date: 2025-01-31
