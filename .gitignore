@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Project: tokenizer-papers-rag ---
+# Pipeline outputs are rebuilt by the CLI and never committed. The corpus
+# manifest (data/manifest/), eval/, results/ and docs/figures/ are committed.
+data/raw/
+data/parsed/
+data/works/
+data/index/
+*.pdf
