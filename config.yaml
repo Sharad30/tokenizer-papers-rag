@@ -59,3 +59,20 @@ collect:
         query: '(abs:fertility OR abs:fairness OR abs:parity) AND (abs:tokenizer OR abs:tokenization)'
       - name: tokenization_effects
         query: '(abs:arithmetic OR abs:numbers OR abs:code OR abs:reasoning) AND ti:tokenization'
+
+  s2:
+    api_key_env: SEMANTIC_SCHOLAR_API_KEY   # optional; unset = shared public pool
+    batch_size: 500
+    page_size: 1000
+    # BPE (Sennrich) alone has tens of thousands of citing papers, nearly all
+    # of which only *use* a tokenizer. Newest first, so the cap keeps recent work.
+    max_items_per_anchor: 10000
+    directions: [references, citations]
+    anchors:  # PLAN.md / STUDY.md anchor papers
+      - ARXIV:1508.07909   # Sennrich et al. 2016, BPE for NMT
+      - ARXIV:1804.10959   # Kudo 2018, subword regularization (Unigram LM)
+      - ARXIV:1808.06226   # Kudo & Richardson 2018, SentencePiece
+      - ARXIV:2105.13626   # Xue et al. 2022, ByT5
+      - ARXIV:2103.06874   # Clark et al. 2022, CANINE
+      - ARXIV:2012.15613   # Rust et al. 2021, How Good is Your Tokenizer?
+      - ARXIV:2305.15425   # Petrov et al. 2023, tokenizer unfairness between languages

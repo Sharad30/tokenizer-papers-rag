@@ -1,5 +1,7 @@
 """Config models for the collect stage (the `collect:` section of config.yaml)."""
 
+from typing import Literal
+
 from pydantic import Field, field_validator
 
 from rag.common.schemas import StrictModel
@@ -43,6 +45,18 @@ class ArxivConfig(StrictModel):
         return queries
 
 
+class S2Config(StrictModel):
+    # Optional: without a key, requests share Semantic Scholar's public pool.
+    api_key_env: str
+    batch_size: int = Field(ge=1, le=500)  # API maximum: 500 ids per batch call
+    page_size: int = Field(ge=1, le=1000)  # API maximum: 1000 per citations page
+    max_items_per_anchor: int = Field(ge=1)
+    directions: list[Literal["references", "citations"]] = Field(min_length=1)
+    # Seed papers for the one-hop snowball, as S2 lookup ids ("ARXIV:1508.07909").
+    anchors: list[str] = Field(min_length=1)
+
+
 class CollectConfig(StrictModel):
     http: HttpConfig
     arxiv: ArxivConfig
+    s2: S2Config
