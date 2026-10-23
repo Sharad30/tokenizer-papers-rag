@@ -37,3 +37,33 @@ Phase: 0  ·  Type: prediction
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-23: Corpus size and which source contributes most
+Phase: 1  ·  Type: prediction
+
+### Prediction (Sharad):
+(write before reading data/manifest/stats.json or docs/figures/phase1-*)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(numbers from data/manifest/stats.json and docs/figures/phase1-coverage.md, commit)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
+
+## 2026-10-23: Relevance filter audit: precision and recall
+Phase: 1  ·  Type: prediction
+
+### Prediction (Sharad):
+(precision and rough recall you expect, before labelling data/manifest/audit_sample.csv)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(your precision / recall from the labelled sample)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
