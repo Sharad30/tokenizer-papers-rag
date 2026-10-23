@@ -12,3 +12,13 @@ logging:
   level: DEBUG
 corpus:
   max_date: 2025-01-31
+collect:
+  http:
+    user_agent: "test-agent/0.0"
+    contact_email_env: TEST_CONTACT_EMAIL
+    timeout_s: 5
+    max_attempts: 3
+    backoff_base_s: 1
+    default_min_interval_s: 0.5
+    min_interval_s:
+      api.example.org: 2.0

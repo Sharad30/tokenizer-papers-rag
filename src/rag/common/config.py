@@ -1,8 +1,8 @@
 """Typed configuration loaded from config.yaml.
 
 Every tunable value in the project lives in config.yaml and is validated
-here. Later phases add their own section model (e.g. `CollectConfig`) and a
-matching field on `Config` when their decisions are made.
+here. Each stage keeps its own section model next to its code (e.g.
+`rag.collect.config.CollectConfig`) and adds a field on `Config` for it.
 """
 
 from datetime import date
@@ -12,6 +12,7 @@ from typing import Literal
 import yaml
 from pydantic import ValidationError
 
+from rag.collect.config import CollectConfig
 from rag.common.schemas import StrictModel
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
@@ -54,6 +55,7 @@ class Config(StrictModel):
     paths: PathsConfig
     logging: LoggingConfig
     corpus: CorpusConfig
+    collect: CollectConfig
     # TODO(sharad): Phase 0 "You do": add one config field of your own here
     # (and to config.yaml), then use it in the `rag collect` stub in
     # src/rag/collect/cli.py.

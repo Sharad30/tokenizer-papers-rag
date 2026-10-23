@@ -21,3 +21,17 @@ corpus:
   # Collection cutoff. Papers after this date are ignored, so reruns are
   # reproducible. PLAN.md's example value; confirm in Phase 1.
   max_date: 2026-10-15
+
+collect:
+  http:
+    user_agent: "tokenizer-papers-rag/0.1 (+https://github.com/Sharad30/tokenizer-papers-rag)"
+    contact_email_env: RAG_CONTACT_EMAIL   # set in .env; appended as (mailto:...)
+    timeout_s: 60
+    max_attempts: 5
+    backoff_base_s: 5      # waits 5, 10, 20, 40 s between attempts
+    default_min_interval_s: 1.0
+    min_interval_s:
+      export.arxiv.org: 3.0         # arXiv API terms: max 1 request / 3 s
+      oaipmh.arxiv.org: 3.0         # no stated limit; same as the API to be safe
+      api.semanticscholar.org: 1.1  # no key: shared pool; 1 rps is the keyed limit
+      aclanthology.org: 1.0         # no published policy; self-throttled
