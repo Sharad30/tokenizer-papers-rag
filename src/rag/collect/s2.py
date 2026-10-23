@@ -23,6 +23,7 @@ PAPER_FIELDS = (
     "paperId,externalIds,title,abstract,venue,year,publicationDate,"
     "publicationTypes,authors,openAccessPdf"
 )
+BAD_REQUEST = 400
 DIRECTION_KEY = {"references": "citedPaper", "citations": "citingPaper"}
 
 
@@ -64,8 +65,12 @@ def snowball(
         try:
             page = client.get_json(f"{API_URL}/paper/{anchor_id}/{direction}", params=params)
         except HttpError as exc:
-            # The API caps how deep offset can go for very highly cited papers;
-            # the cap is undocumented, so stop and say so rather than crash.
+            # The API caps how deep offset can go for very highly cited papers
+            # (undocumented; it answers 400), so stop there and say so. Anything
+            # else, e.g. retries exhausted on 429, must fail the step: carrying
+            # on would silently drop papers. A rerun resumes from the cache.
+            if exc.status != BAD_REQUEST or exc.retries_exhausted:
+                raise
             logger.warning("Stopped %s of %s at offset %d: %s", direction, anchor_id, offset, exc)
             return
         for item in page.get("data") or []:

@@ -7,6 +7,7 @@ import pytest
 import respx
 
 from rag.collect import s2
+from rag.collect.http import HttpError
 from rag.collect.schemas import CandidateRecord, LicenceSource, Source
 
 # Synthetic paper in the shape the Graph API returns (checked against a live response).
@@ -172,3 +173,11 @@ def test_within_cutoff(publication_date: date | None, year: int | None, kept: bo
 def test_lookup_id_prefers_most_specific(fields: dict, expected: str | None) -> None:
     record = CandidateRecord(record_id="r", source=Source.ACL, title="T", **fields)
     assert s2.lookup_id(record) == expected
+
+
+@respx.mock
+def test_snowball_raises_when_rate_limit_retries_run_out(make_client) -> None:
+    # Truncating here would silently drop papers; failing lets a rerun resume.
+    respx.get(f"{s2.API_URL}/paper/ANCHOR/citations").mock(return_value=httpx.Response(429))
+    with make_client() as client, pytest.raises(HttpError, match="after 3 attempts"):
+        list(s2.snowball(client, "ANCHOR", "citations", page_size=5, max_items=50))

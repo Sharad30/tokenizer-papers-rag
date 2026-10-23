@@ -30,6 +30,11 @@ RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 class HttpError(Exception):
     """A request failed permanently (non-retryable status, or retries exhausted)."""
 
+    def __init__(self, message: str, status: int | None = None, retries_exhausted: bool = False):
+        super().__init__(message)
+        self.status = status  # the last HTTP status seen, if any
+        self.retries_exhausted = retries_exhausted
+
 
 class RateLimiter:
     """Keeps at least `min_interval_s[host]` seconds between requests to each host.
@@ -181,6 +186,7 @@ class PoliteClient:
         host = urlsplit(url).netloc
         headers = self._host_headers.get(host, {})
         last_problem = ""
+        last_status: int | None = None
         for attempt in range(1, self._config.max_attempts + 1):
             self._limiter.wait(host)
             self.counts["network"] += 1
@@ -192,7 +198,7 @@ class PoliteClient:
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 last_problem = f"{type(exc).__name__}: {exc}"
             else:
-                status = response.status_code
+                status = last_status = response.status_code
                 if status < 400:
                     if accept is None or accept(response.text):
                         return response
@@ -201,7 +207,7 @@ class PoliteClient:
                     last_problem = f"HTTP {status}"
                     wait_s = _retry_after_s(response)
                 else:
-                    raise HttpError(f"{method} {url} -> HTTP {status}")
+                    raise HttpError(f"{method} {url} -> HTTP {status}", status=status)
             if attempt < self._config.max_attempts:
                 # A server's Retry-After wins over our own exponential backoff.
                 delay = (
@@ -219,7 +225,9 @@ class PoliteClient:
                 )
                 self._sleep(delay)
         raise HttpError(
-            f"{method} {url} failed after {self._config.max_attempts} attempts: {last_problem}"
+            f"{method} {url} failed after {self._config.max_attempts} attempts: {last_problem}",
+            status=last_status,
+            retries_exhausted=True,
         )
 
 

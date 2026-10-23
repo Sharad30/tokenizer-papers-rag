@@ -166,3 +166,16 @@ def test_rejected_body_is_retried_and_not_cached(make_client) -> None:
         assert client.request_text("GET", URL, accept=lambda body: body == "good") == "good"
         assert client.request_text("GET", URL) == "good"  # the good body was cached
     assert route.call_count == 2
+
+
+@respx.mock
+def test_http_error_carries_status_and_whether_retries_ran_out(make_client) -> None:
+    respx.get(URL).mock(return_value=httpx.Response(404))
+    respx.get(OTHER_URL).mock(return_value=httpx.Response(429))
+    with make_client() as client:
+        with pytest.raises(HttpError) as permanent:
+            client.request_text("GET", URL)
+        with pytest.raises(HttpError) as exhausted:
+            client.request_text("GET", OTHER_URL)
+    assert (permanent.value.status, permanent.value.retries_exhausted) == (404, False)
+    assert (exhausted.value.status, exhausted.value.retries_exhausted) == (429, True)
