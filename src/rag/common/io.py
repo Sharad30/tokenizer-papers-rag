@@ -21,29 +21,33 @@ STATS_FILENAME = "stats.json"
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
-def _write_text_atomic(path: Path, text: str) -> None:
+def write_bytes_atomic(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # The temp file must be in the same directory: os.replace is only atomic
     # within one filesystem.
     fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(text)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
         os.replace(tmp_name, path)
     except BaseException:
         Path(tmp_name).unlink(missing_ok=True)
         raise
 
 
+def write_text_atomic(path: Path, text: str) -> None:
+    write_bytes_atomic(path, text.encode("utf-8"))
+
+
 def write_json(path: Path, data: BaseModel | dict) -> None:
     payload = data.model_dump(mode="json") if isinstance(data, BaseModel) else data
-    _write_text_atomic(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    write_text_atomic(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
 def write_jsonl(path: Path, records: Iterable[BaseModel]) -> int:
     """Write one JSON object per line; returns the number of records written."""
     lines = [record.model_dump_json() for record in records]
-    _write_text_atomic(path, "".join(line + "\n" for line in lines))
+    write_text_atomic(path, "".join(line + "\n" for line in lines))
     return len(lines)
 
 

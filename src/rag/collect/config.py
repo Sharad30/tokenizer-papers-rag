@@ -76,9 +76,21 @@ class RelevanceConfig(StrictModel):
     embedding_threshold: float = Field(ge=-1, le=1)
 
 
+class VersionsConfig(StrictModel):
+    # Keep v1 as its own record when its abstract's similarity to the latest
+    # version's is below this (D-009). 1.0 would keep every revised v1.
+    keep_v1_if_abstract_similarity_below: float = Field(ge=0, le=1)
+
+
+class DownloadConfig(StrictModel):
+    enabled_sources: list[Literal["arxiv", "acl", "s2"]]
+
+
 class CollectConfig(StrictModel):
     http: HttpConfig
     arxiv: ArxivConfig
     s2: S2Config
     acl: AclConfig
     relevance: RelevanceConfig
+    versions: VersionsConfig
+    download: DownloadConfig

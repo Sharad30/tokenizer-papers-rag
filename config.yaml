@@ -113,3 +113,13 @@ collect:
     # Set by eye on 31 real ambiguous papers (D-008): no clean gap between in
     # and out; the audit measures the cost. Not tuned on the eval set.
     embedding_threshold: 0.745
+
+  versions:
+    # A one-word typo fix scores ~1.0; the BPE paper's v1 vs v5 abstract
+    # (rewritten opening, changed BLEU numbers) scores 0.907.
+    keep_v1_if_abstract_similarity_below: 0.95
+
+  download:
+    # s2 = open-access links from Semantic Scholar for papers on neither
+    # arXiv nor ACL; often publisher landing pages (recorded as not_pdf).
+    enabled_sources: [arxiv, acl, s2]

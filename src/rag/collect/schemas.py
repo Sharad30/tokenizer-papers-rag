@@ -28,6 +28,9 @@ class Decision(StrEnum):
 class DecidedBy(StrEnum):
     KEYWORD = "keyword"
     EMBEDDING = "embedding"
+    # Copies of an already-decided paper (its venue version, its v1) take that
+    # paper's decision, so two copies of one paper can never disagree.
+    INHERITED = "inherited"
 
 
 class Reason(StrEnum):
@@ -37,6 +40,8 @@ class Reason(StrEnum):
     ABSTRACT_TERM_ONLY = "abstract_term_only"  # sent to the embedding judge
     EMBEDDING_ABOVE = "embedding_above_threshold"
     EMBEDDING_BELOW = "embedding_below_threshold"
+    LINKED_MANIFESTATION = "linked_manifestation"  # e.g. the ACL copy of an arXiv paper
+    EARLIER_VERSION = "earlier_version"  # an arXiv v1 kept by the D-009 rule
 
 
 class RelevanceDecision(StrictModel):
@@ -77,3 +82,38 @@ class CandidateRecord(StrictModel):
     licence_source: LicenceSource | None = None
     # How this record was found, e.g. "arxiv_query:bpe", "snowball_cit:arxiv:1508.07909".
     found_via: list[str] = []
+
+
+class DownloadStatus(StrEnum):
+    DOWNLOADED = "downloaded"
+    ALREADY_PRESENT = "already_present"  # a valid PDF from an earlier run (resume)
+    NO_URL = "no_url"
+    NOT_PDF = "not_pdf"  # e.g. an open-access link that is really a landing page
+    FAILED = "failed"
+    NOT_ATTEMPTED = "not_attempted"  # rejected, source disabled, or past --limit
+
+
+class ManifestRecord(CandidateRecord):
+    """A candidate plus every decision made about it: the manifest's row schema."""
+
+    relevance: Decision | None = None
+    decided_by: DecidedBy | None = None
+    reason: Reason | None = None
+    matched_terms: list[str] = []
+    embedding_score: float | None = None
+    # Which record this one was derived from, for linked copies and kept v1s.
+    derived_from: str | None = None
+    download_status: DownloadStatus = DownloadStatus.NOT_ATTEMPTED
+    pdf_sha256: str | None = None
+    included_in_index: bool | None = None  # filled in by Phase 2
+
+    def with_decision(self, decision: RelevanceDecision) -> "ManifestRecord":
+        return self.model_copy(
+            update={
+                "relevance": decision.decision,
+                "decided_by": decision.decided_by,
+                "reason": decision.reason,
+                "matched_terms": decision.matched_terms,
+                "embedding_score": decision.embedding_score,
+            }
+        )
