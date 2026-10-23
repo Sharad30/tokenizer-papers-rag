@@ -30,7 +30,7 @@ check: lint test  ## Lint + tests: run before every commit
 smoke:  ## Run the whole pipeline on a tiny --limit
 	$(RAG) --help > /dev/null
 	$(RAG) config show > /dev/null
-	$(RAG) collect --limit $(SMOKE_LIMIT)
+	$(RAG) collect all --limit $(SMOKE_LIMIT)
 	$(RAG) parse --limit $(SMOKE_LIMIT)
 	$(RAG) dedup --limit $(SMOKE_LIMIT)
 	$(RAG) index --limit $(SMOKE_LIMIT)

@@ -50,3 +50,6 @@ collect:
     keep_v1_if_abstract_similarity_below: 0.9
   download:
     enabled_sources: [arxiv]
+  audit:
+    sample_per_decision: 2
+    seed: 0

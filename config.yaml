@@ -123,3 +123,7 @@ collect:
     # s2 = open-access links from Semantic Scholar for papers on neither
     # arXiv nor ACL; often publisher landing pages (recorded as not_pdf).
     enabled_sources: [arxiv, acl, s2]
+
+  audit:
+    sample_per_decision: 25
+    seed: 13

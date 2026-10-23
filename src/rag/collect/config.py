@@ -86,6 +86,11 @@ class DownloadConfig(StrictModel):
     enabled_sources: list[Literal["arxiv", "acl", "s2"]]
 
 
+class AuditConfig(StrictModel):
+    sample_per_decision: int = Field(ge=1)  # PLAN: ~25 accepted + ~25 rejected
+    seed: int
+
+
 class CollectConfig(StrictModel):
     http: HttpConfig
     arxiv: ArxivConfig
@@ -94,3 +99,4 @@ class CollectConfig(StrictModel):
     relevance: RelevanceConfig
     versions: VersionsConfig
     download: DownloadConfig
+    audit: AuditConfig

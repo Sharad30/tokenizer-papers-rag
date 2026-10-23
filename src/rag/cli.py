@@ -12,7 +12,7 @@ import yaml
 
 from rag import inspection
 from rag.chat.cli import chat
-from rag.collect.cli import collect
+from rag.collect import cli as collect_cli
 from rag.common.cli import AppState, get_config
 from rag.common.config import DEFAULT_CONFIG_PATH
 from rag.dedup.cli import dedup
@@ -51,7 +51,7 @@ def config_show(ctx: typer.Context) -> None:
 
 
 # Registered in pipeline order, which is also the order `rag --help` lists them.
-app.command()(collect)
+app.add_typer(collect_cli.app, name="collect")
 app.command()(parse)
 app.command()(dedup)
 app.command()(index)
