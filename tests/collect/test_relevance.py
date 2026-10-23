@@ -2,15 +2,8 @@ import numpy as np
 import pytest
 
 from rag.collect.config import RelevanceConfig
-from rag.collect.relevance import (
-    DecidedBy,
-    Decision,
-    EmbeddingJudge,
-    KeywordRules,
-    Reason,
-    judge_text,
-)
-from rag.collect.schemas import CandidateRecord, Source
+from rag.collect.relevance import EmbeddingJudge, KeywordRules, judge_text
+from rag.collect.schemas import CandidateRecord, DecidedBy, Decision, Reason, Source
 
 CONFIG = RelevanceConfig(
     title_accept_terms=[

@@ -9,41 +9,17 @@ judge. Every decision carries a reason code so rejects can be audited.
 
 import re
 from collections.abc import Callable, Sequence
-from enum import StrEnum
 
 import numpy as np
 
 from rag.collect.config import RelevanceConfig
-from rag.collect.schemas import CandidateRecord
-from rag.common.schemas import StrictModel
-
-
-class Decision(StrEnum):
-    ACCEPT = "accept"
-    REJECT = "reject"
-    AMBIGUOUS = "ambiguous"  # only ever an intermediate state; the judge resolves it
-
-
-class DecidedBy(StrEnum):
-    KEYWORD = "keyword"
-    EMBEDDING = "embedding"
-
-
-class Reason(StrEnum):
-    NO_TOPIC_TERM = "no_topic_term"  # no topic term in title or abstract
-    OFF_TOPIC_TERM = "off_topic_term"  # title names an excluded sense, e.g. "visual tokenizer"
-    TITLE_TERM = "title_term"  # a strong topic term in the title
-    ABSTRACT_TERM_ONLY = "abstract_term_only"  # sent to the embedding judge
-    EMBEDDING_ABOVE = "embedding_above_threshold"
-    EMBEDDING_BELOW = "embedding_below_threshold"
-
-
-class RelevanceDecision(StrictModel):
-    decision: Decision
-    decided_by: DecidedBy
-    reason: Reason
-    matched_terms: list[str]
-    embedding_score: float | None = None
+from rag.collect.schemas import (
+    CandidateRecord,
+    DecidedBy,
+    Decision,
+    Reason,
+    RelevanceDecision,
+)
 
 
 def _compile(terms: Sequence[str]) -> re.Pattern[str]:
