@@ -155,3 +155,14 @@ def test_post_json_round_trip(make_client) -> None:
         assert client.post_json(URL, body={"ids": ["a"]}) == [{"id": 1}]
     assert route.call_count == 1
     assert route.calls.last.request.content == b'{"ids":["a"]}'
+
+
+@respx.mock
+def test_rejected_body_is_retried_and_not_cached(make_client) -> None:
+    route = respx.get(URL).mock(
+        side_effect=[httpx.Response(200, text="bad"), httpx.Response(200, text="good")]
+    )
+    with make_client() as client:
+        assert client.request_text("GET", URL, accept=lambda body: body == "good") == "good"
+        assert client.request_text("GET", URL) == "good"  # the good body was cached
+    assert route.call_count == 2

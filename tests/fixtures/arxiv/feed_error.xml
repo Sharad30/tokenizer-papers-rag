@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Synthetic error feed in the API's format: one entry whose id is an error URL. -->
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns="http://www.w3.org/2005/Atom">
+  <opensearch:totalResults>1</opensearch:totalResults>
+  <entry>
+    <id>http://arxiv.org/api/errors#incorrect_id_format_for_bad-id</id>
+    <title>Error</title>
+    <summary>incorrect id format for bad-id</summary>
+  </entry>
+</feed>

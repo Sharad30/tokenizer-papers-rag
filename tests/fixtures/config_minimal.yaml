@@ -22,3 +22,10 @@ collect:
     default_min_interval_s: 0.5
     min_interval_s:
       api.example.org: 2.0
+  arxiv:
+    categories: [cs.CL]
+    page_size: 2
+    max_results_per_query: 10
+    queries:
+      - name: bpe
+        query: 'abs:"byte pair encoding"'

@@ -35,3 +35,27 @@ collect:
       oaipmh.arxiv.org: 3.0         # no stated limit; same as the API to be safe
       api.semanticscholar.org: 1.1  # no key: shared pool; 1 rps is the keyed limit
       aclanthology.org: 1.0         # no published policy; self-throttled
+
+  arxiv:
+    # Search is stemmed: "tokenization" also matches "token(s)", so title
+    # queries pull in many off-topic papers. The relevance filter sorts them out.
+    categories: [cs.CL, cs.LG, cs.AI]
+    page_size: 500
+    max_results_per_query: 3000
+    # Drafted from the D-005 boundary terms; one query per sub-topic so
+    # found_via shows which query found each paper.
+    queries:
+      - name: tokenizer_title
+        query: 'ti:tokenizer OR ti:tokenizers OR ti:tokenization OR ti:tokenisation'
+      - name: subword
+        query: 'abs:"subword segmentation" OR abs:"subword tokenization" OR abs:"subword units" OR abs:"subword vocabulary"'
+      - name: bpe_unigram_wordpiece
+        query: 'abs:"byte pair encoding" OR abs:"byte-pair encoding" OR abs:sentencepiece OR abs:wordpiece OR abs:"unigram language model"'
+      - name: tokenizer_free
+        query: 'abs:"tokenizer-free" OR abs:"tokenization-free" OR abs:"byte-level language model" OR abs:"character-level language model"'
+      - name: vocabulary_size
+        query: 'abs:"vocabulary size" AND (abs:tokenizer OR abs:tokenization)'
+      - name: fertility_fairness
+        query: '(abs:fertility OR abs:fairness OR abs:parity) AND (abs:tokenizer OR abs:tokenization)'
+      - name: tokenization_effects
+        query: '(abs:arithmetic OR abs:numbers OR abs:code OR abs:reasoning) AND ti:tokenization'

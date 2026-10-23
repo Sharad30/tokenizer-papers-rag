@@ -138,8 +138,14 @@ class PoliteClient:
         *,
         params: Mapping[str, Any] | None = None,
         json_body: Any = None,
+        accept: Callable[[str], bool] | None = None,
     ) -> str:
-        """Return the response body, from the cache if this exact request was made before."""
+        """Return the response body, from the cache if this exact request was made before.
+
+        `accept` lets a caller reject a 200 response that is really a failure
+        (e.g. an arXiv page that came back empty under load). A rejected body
+        is retried like a 503 and never cached.
+        """
         host = urlsplit(url).netloc
         key = ResponseCache.key(method, url, params, json_body)
         cached = self._cache.get(host, key)
@@ -147,7 +153,7 @@ class PoliteClient:
             self.counts["cache_hit"] += 1
             logger.debug("cache hit %s %s", method, url)
             return cached
-        response = self._send(method, url, params=params, json_body=json_body)
+        response = self._send(method, url, params=params, json_body=json_body, accept=accept)
         body = response.text
         request = {"method": method.upper(), "url": url, "params": params, "body": json_body}
         self._cache.put(host, key, request, body)
@@ -170,6 +176,7 @@ class PoliteClient:
         *,
         params: Mapping[str, Any] | None = None,
         json_body: Any = None,
+        accept: Callable[[str], bool] | None = None,
     ) -> httpx.Response:
         host = urlsplit(url).netloc
         headers = self._host_headers.get(host, {})
@@ -177,6 +184,7 @@ class PoliteClient:
         for attempt in range(1, self._config.max_attempts + 1):
             self._limiter.wait(host)
             self.counts["network"] += 1
+            wait_s: float | None = None
             try:
                 response = self._http.request(
                     method, url, params=params, json=json_body, headers=headers
@@ -184,20 +192,23 @@ class PoliteClient:
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 last_problem = f"{type(exc).__name__}: {exc}"
             else:
-                if response.status_code < 400:
-                    return response
-                if response.status_code not in RETRYABLE_STATUS:
-                    raise HttpError(f"{method} {url} -> HTTP {response.status_code}")
-                last_problem = f"HTTP {response.status_code}"
-                retry_after = _retry_after_s(response)
-                if retry_after is not None and attempt < self._config.max_attempts:
-                    logger.warning(
-                        "%s from %s; waiting %.0fs (Retry-After)", last_problem, host, retry_after
-                    )
-                    self._sleep(retry_after)
-                    continue
+                status = response.status_code
+                if status < 400:
+                    if accept is None or accept(response.text):
+                        return response
+                    last_problem = "response rejected by validator"
+                elif status in RETRYABLE_STATUS:
+                    last_problem = f"HTTP {status}"
+                    wait_s = _retry_after_s(response)
+                else:
+                    raise HttpError(f"{method} {url} -> HTTP {status}")
             if attempt < self._config.max_attempts:
-                delay = self._config.backoff_base_s * 2 ** (attempt - 1)
+                # A server's Retry-After wins over our own exponential backoff.
+                delay = (
+                    wait_s
+                    if wait_s is not None
+                    else self._config.backoff_base_s * 2 ** (attempt - 1)
+                )
                 logger.warning(
                     "%s on %s (attempt %d/%d); retrying in %.0fs",
                     last_problem,

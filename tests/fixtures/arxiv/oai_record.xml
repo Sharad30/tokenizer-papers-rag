@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic OAI-PMH GetRecord (arXivRaw); structure from the real endpoint. -->
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+  <GetRecord><record>
+    <header><identifier>oai:arXiv.org:2401.00001</identifier></header>
+    <metadata>
+      <arXivRaw xmlns="http://arxiv.org/OAI/arXivRaw/">
+        <id>2401.00001</id>
+        <version version="v1"><date>Tue, 2 Jan 2024 09:30:00 GMT</date><size>100kb</size></version>
+        <version version="v2"><date>Thu, 1 Feb 2024 12:00:00 GMT</date><size>110kb</size></version>
+        <version version="v3"><date>Fri, 1 Mar 2024 10:00:00 GMT</date><size>120kb</size></version>
+        <title>A Synthetic Study of Subword Vocabularies</title>
+        <license>http://creativecommons.org/licenses/by/4.0/</license>
+        <abstract>  We vary the vocabulary
+  size of a byte pair encoding tokenizer.
+</abstract>
+      </arXivRaw>
+    </metadata>
+  </record></GetRecord>
+</OAI-PMH>

@@ -1,6 +1,6 @@
 """Config models for the collect stage (the `collect:` section of config.yaml)."""
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from rag.common.schemas import StrictModel
 
@@ -21,5 +21,28 @@ class HttpConfig(StrictModel):
     min_interval_s: dict[str, float]
 
 
+class ArxivQuery(StrictModel):
+    name: str  # recorded in each record's found_via, e.g. "arxiv_query:bpe"
+    query: str  # arXiv search_query syntax, without the category and date filters
+
+
+class ArxivConfig(StrictModel):
+    categories: list[str]
+    # arXiv API limits: slices of at most 2000, at most 30000 results per query.
+    page_size: int = Field(ge=1, le=2000)
+    max_results_per_query: int = Field(ge=1, le=30000)
+    queries: list[ArxivQuery] = Field(min_length=1)
+
+    @field_validator("queries")
+    @classmethod
+    def _unique_names(cls, queries: list[ArxivQuery]) -> list[ArxivQuery]:
+        names = [q.name for q in queries]
+        duplicates = sorted({n for n in names if names.count(n) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate query names: {duplicates}")
+        return queries
+
+
 class CollectConfig(StrictModel):
     http: HttpConfig
+    arxiv: ArxivConfig

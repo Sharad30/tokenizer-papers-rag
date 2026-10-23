@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Synthetic arXiv API response: second page of feed_page.xml. -->
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/synthetic2</id>
+  <opensearch:totalResults>3</opensearch:totalResults>
+  <opensearch:startIndex>2</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2402.00002v1</id>
+    <title>Third Synthetic Paper</title>
+    <summary>Tokenizer-free modelling.</summary>
+    <published>2024-02-02T00:00:00Z</published>
+    <author><name>Di Dummy</name></author>
+  </entry>
+</feed>
