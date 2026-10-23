@@ -227,3 +227,6 @@ data/parsed/
 data/works/
 data/index/
 *.pdf
+# The PyInstaller "MANIFEST" pattern above matches data/manifest/ on
+# case-insensitive filesystems (macOS); the manifest is committed.
+!data/manifest/
