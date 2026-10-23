@@ -88,6 +88,8 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Boundary (from PLAN.md, verbatim): include papers where tokenization is a primary contribution or a main experimental variable (BPE, WordPiece, Unigram/SentencePiece, byte/character-level and tokenizer-free models, vocabulary size, multilingual fairness and fertility, tokenization effects on arithmetic, code, reasoning). Exclude papers that only use a tokenizer.
 - Inclusion rule in Sharad's words: TODO(sharad)
 - How it is applied: keyword rules on title + abstract (accept / reject / ambiguous, each with a reason code), then embedding similarity to this boundary text for the ambiguous ones (D-008).
+- Modality scope (decided by Sharad, 2026-10-23): **text only**, meaning natural language and code. Other uses of "tokenization" are out even with a tokenizer term in the title. That covers images, video, speech units, audio, proteins/DNA/molecules, graphs, recommendation and locations. Options considered: text only (chosen; focused, matches the brief), text + biology sequences (shared algorithms, different questions), any modality (much larger, incoherent corpus). Implemented as title exclusion terms, reason `off_topic_term`.
+- Why it was needed: the first full discovery (19k candidates) showed "tokenization" is now a generic ML word. In a random 25 of the title-term accepts, about 7–8 were protein, graph, vision, recommendation or location papers.
 - Evidence: the audit sample (precision and rough recall), to be added after labelling.
 - Tuned on eval set?: no
 - Revisit if: the audit shows systematic misses in one sub-topic.
@@ -134,6 +136,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   - The 31 ambiguous papers span 0.652–0.832 with **no clean gap**. Clearly in-scope papers mostly sit high (*Broken Tokens?* 0.817, *BrahmicTokenizer-131K* 0.799, *Bolmo: Byteifying…* 0.794), but in- and out-of-scope papers interleave between 0.73 and 0.75: *Optimizing LLMs for Italian: Reducing Token Fertility* 0.743 (in) sits next to *OncoNoteBERT* 0.744 and *AudioCodecBench* 0.733 (out).
   - Threshold set by eye to **0.745**. Expect errors in both directions near it.
   - Model check: bge-small in sentence-transformers 6.2 defines no default prompt (`prompts: {query: '', document: ''}`), so no instruction is applied silently.
+- Passing-mention rule (Sharad chose "stricter evidence first", 2026-10-23): before the judge, an abstract-only match needs topic terms in at least 2 sentences (`min_abstract_sentences_with_term`), else reject `passing_mention`. Options considered: this rule (chosen), raising the threshold only (blunt, given no clean gap), rejecting all ambiguous (would lose real papers whose titles don't say "tokenizer", e.g. *Bolmo: Byteifying…*). On the 18,826 resolved records this cut the judge's input from ~4,000 to 908 (2,234 passing mentions). The threshold stays 0.745: it was set before this rule existed and has not been re-tuned.
 - Evidence: audit precision/recall (pending).
 - Tuned on eval set?: no (the audit sample is separate from the Phase 3 eval set).
 - Revisit if: the audit shows most errors come from the ambiguous band.
