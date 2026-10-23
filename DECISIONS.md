@@ -129,6 +129,11 @@ deleted: a changed decision gets a new entry, and the old one is marked
   3. Manual review queue. Pros: most honest. Cons: hundreds of papers to read.
 - Choice: 1. No query instruction (the model card reserves it for short retrieval queries; this is passage-to-passage similarity), `normalize_embeddings=True`, so cosine = dot product.
 - Threshold: starts at a value set by eye on a handful of clearly-in and clearly-out abstracts; the audit then measures it. Any change after seeing audit labels will be recorded here.
+- Calibration (2026-10-23): first 60 results of three seed queries (`subword`, `fertility_fairness`, `tokenization_effects`), 180 papers. Keyword rules: 88 title_term, 60 no_topic_term, 31 ambiguous, 1 off_topic_term.
+  - Title-accepted papers score a median cosine of 0.793 (minimum 0.669).
+  - The 31 ambiguous papers span 0.652–0.832 with **no clean gap**. Clearly in-scope papers mostly sit high (*Broken Tokens?* 0.817, *BrahmicTokenizer-131K* 0.799, *Bolmo: Byteifying…* 0.794), but in- and out-of-scope papers interleave between 0.73 and 0.75: *Optimizing LLMs for Italian: Reducing Token Fertility* 0.743 (in) sits next to *OncoNoteBERT* 0.744 and *AudioCodecBench* 0.733 (out).
+  - Threshold set by eye to **0.745**. Expect errors in both directions near it.
+  - Model check: bge-small in sentence-transformers 6.2 defines no default prompt (`prompts: {query: '', document: ''}`), so no instruction is applied silently.
 - Evidence: audit precision/recall (pending).
 - Tuned on eval set?: no (the audit sample is separate from the Phase 3 eval set).
 - Revisit if: the audit shows most errors come from the ambiguous band.
