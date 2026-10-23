@@ -71,6 +71,9 @@ class RelevanceConfig(StrictModel):
     topic_terms: list[str]
     # Title phrases for senses of "token" outside the boundary.
     title_exclude_terms: list[str]
+    # An abstract-only match must name a topic term in at least this many
+    # sentences to reach the embedding judge; fewer is a passing mention.
+    min_abstract_sentences_with_term: int = Field(ge=1)
     # The D-005 boundary text the embedding judge compares abstracts with.
     topic_description: str
     embedding_model: str

@@ -15,7 +15,8 @@ CONFIG = RelevanceConfig(
         "tokenizer-free",
     ],
     topic_terms=["fertility", "vocabulary size"],
-    title_exclude_terms=["visual tokenizer", "token pruning"],
+    title_exclude_terms=["visual tokenizer", "token pruning", "protein", "speech recognition"],
+    min_abstract_sentences_with_term=2,
     topic_description="tokenization research",
     embedding_model="unused",
     embedding_batch_size=2,
@@ -30,19 +31,25 @@ rules = KeywordRules(CONFIG)
         ("Tokenizer-Free Language Modelling", "", Decision.ACCEPT, Reason.TITLE_TERM),
         ("How BPE Merges Shape Models", "", Decision.ACCEPT, Reason.TITLE_TERM),
         ("Rethinking Byte-Pair Encoding", "", Decision.ACCEPT, Reason.TITLE_TERM),
-        # Uses a tokenizer, doesn't study it: only the abstract mentions it.
+        # Uses a tokenizer, doesn't study it: a single sentence mentions it.
         (
             "A Summariser for Turkish News",
-            "We train with a BPE tokenizer.",
-            Decision.AMBIGUOUS,
-            Reason.ABSTRACT_TERM_ONLY,
+            "We train with a BPE tokenizer. Results improve.",
+            Decision.REJECT,
+            Reason.PASSING_MENTION,
         ),
+        # Recurs across sentences: may be the subject, so the judge decides.
         (
             "Translation Quality Across Languages",
-            "Token fertility predicts quality.",
+            "Token fertility predicts quality. We measure fertility in 50 languages.",
             Decision.AMBIGUOUS,
             Reason.ABSTRACT_TERM_ONLY,
         ),
+        # Text-only boundary: other modalities and domains excluded by title.
+        ("Subword Algorithms for Protein Sequences", "", Decision.REJECT, Reason.OFF_TOPIC_TERM),
+        ("Subword Units for Speech Recognition", "", Decision.REJECT, Reason.OFF_TOPIC_TERM),
+        # Phrase-matched, so "part-of-speech" doesn't trigger the speech exclusion.
+        ("Subword Features for Part-of-Speech Tagging", "", Decision.ACCEPT, Reason.TITLE_TERM),
         (
             "Graph Neural Networks for Molecules",
             "Message passing.",

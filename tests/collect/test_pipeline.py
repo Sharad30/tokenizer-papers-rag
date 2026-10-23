@@ -65,7 +65,7 @@ REFERENCES = [
     {
         "paperId": "p6",
         "title": "Summarising News",
-        "abstract": "We train with a bpe tokenizer.",
+        "abstract": "We train with a bpe tokenizer. The tokenizer matters.",
         "year": 2021,
     },
     {"paperId": "p5", "title": "A Future Tokenizer", "year": 2030},  # after the cutoff

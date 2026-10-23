@@ -35,6 +35,7 @@ class KeywordRules:
         # Every title-accept term is also a topic term.
         self._topic_terms = _compile([*config.title_accept_terms, *config.topic_terms])
         self._exclude_terms = _compile(config.title_exclude_terms)
+        self._min_sentences = config.min_abstract_sentences_with_term
 
     def has_topic_term(self, title: str, abstract: str) -> bool:
         """Cheap pre-screen used by the ACL scan."""
@@ -52,8 +53,17 @@ class KeywordRules:
         title_matches = _found(self._title_terms, title)
         if title_matches:
             return _keyword(Decision.ACCEPT, Reason.TITLE_TERM, title_matches)
+        # No title term: the abstract must make tokenization its subject, which
+        # shows as topic terms recurring across sentences, not one mention.
+        sentences = [s for s in _SENTENCE_END.split(abstract) if self._topic_terms.search(s)]
+        if len(sentences) < self._min_sentences:
+            return _keyword(Decision.REJECT, Reason.PASSING_MENTION, topic_matches)
         return _keyword(Decision.AMBIGUOUS, Reason.ABSTRACT_TERM_ONLY, topic_matches)
 
+
+# Sentence boundary: ., ! or ? followed by whitespace. Good enough for
+# abstracts; an occasional "e.g. x" split only makes the rule stricter.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 Encoder = Callable[[list[str]], np.ndarray]
 

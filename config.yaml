@@ -97,14 +97,25 @@ collect:
       fertility, "vocabulary size", "word segmentation", "morphological segmentation",
       out-of-vocabulary, open-vocabulary,
     ]
-    # Other senses of "token(izer)" that D-005 excludes (vision/speech
-    # tokenizers, ViT token pruning). Biology/molecule tokenizers are NOT
-    # excluded here: that boundary call is open in D-005.
+    # Titles naming another modality or domain: D-005 is text-only (natural
+    # language and code), so these reject as off_topic_term even with a
+    # tokenizer term in the title. "speech" is phrase-matched so that
+    # "part-of-speech" papers are not excluded.
     title_exclude_terms: [
       "visual tokenizer", "image tokenizer", "video tokenizer", "audio tokenizer",
       "speech tokenizer", "visual tokenization", "image tokenization",
-      "point cloud", "token pruning", "token merging", "token reduction",
+      "token pruning", "token merging", "token reduction",
+      image, images, visual, vision, video, videos, "point cloud", 3d, motion,
+      audio, acoustic, music, "speech recognition", "speech synthesis",
+      "speech tokens", "speech language model", "spoken language model",
+      text-to-speech, protein, proteins, molecule, molecules, molecular, dna,
+      genome, genomic, genomics, peptide, chemical, graph, graphs,
+      recommendation, recommender, location, trajectory, trajectories,
+      "time series", "vector quantization", vq-vae,
     ]
+    # Abstract-only matches need topic terms in this many sentences, else
+    # they reject as passing_mention ("we train with a BPE tokenizer").
+    min_abstract_sentences_with_term: 2
     topic_description: >-
       Research where tokenization is a primary contribution or a main
       experimental variable: subword tokenization algorithms such as BPE,

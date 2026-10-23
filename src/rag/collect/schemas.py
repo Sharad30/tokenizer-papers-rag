@@ -38,6 +38,9 @@ class Reason(StrEnum):
     OFF_TOPIC_TERM = "off_topic_term"  # title names an excluded sense, e.g. "visual tokenizer"
     TITLE_TERM = "title_term"  # a strong topic term in the title
     ABSTRACT_TERM_ONLY = "abstract_term_only"  # sent to the embedding judge
+    # Topic terms in too few abstract sentences: a paper that uses a tokenizer
+    # ("we train with a BPE tokenizer") rather than studies one.
+    PASSING_MENTION = "passing_mention"
     EMBEDDING_ABOVE = "embedding_above_threshold"
     EMBEDDING_BELOW = "embedding_below_threshold"
     LINKED_MANIFESTATION = "linked_manifestation"  # e.g. the ACL copy of an arXiv paper
