@@ -36,3 +36,5 @@ collect:
     max_items_per_anchor: 10
     directions: [references]
     anchors: ["ARXIV:0000.00000"]
+  acl:
+    enabled: false

@@ -76,3 +76,6 @@ collect:
       - ARXIV:2103.06874   # Clark et al. 2022, CANINE
       - ARXIV:2012.15613   # Rust et al. 2021, How Good is Your Tokenizer?
       - ARXIV:2305.15425   # Petrov et al. 2023, tokenizer unfairness between languages
+
+  acl:
+    enabled: true   # clones the Anthology data repo (~120 MB) to data/raw/acl-anthology

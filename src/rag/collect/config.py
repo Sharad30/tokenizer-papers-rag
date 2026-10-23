@@ -56,7 +56,13 @@ class S2Config(StrictModel):
     anchors: list[str] = Field(min_length=1)
 
 
+class AclConfig(StrictModel):
+    # The scan clones the Anthology data repo (~120 MB) into paths.raw.
+    enabled: bool
+
+
 class CollectConfig(StrictModel):
     http: HttpConfig
     arxiv: ArxivConfig
     s2: S2Config
+    acl: AclConfig
