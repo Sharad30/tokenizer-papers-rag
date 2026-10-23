@@ -79,3 +79,37 @@ collect:
 
   acl:
     enabled: true   # clones the Anthology data repo (~120 MB) to data/raw/acl-anthology
+
+  relevance:
+    # Matching is case-insensitive on whole words/phrases. List spelling and
+    # hyphenation variants explicitly; there is no stemming.
+    title_accept_terms: [
+      tokenizer, tokenizers, tokeniser, tokenisers, tokenization, tokenisation,
+      tokenizing, tokenize, subword, subwords, sub-word, "byte pair encoding",
+      "byte-pair encoding", bpe, wordpiece, sentencepiece, "unigram language model",
+      tokenizer-free, tokenization-free, token-free, byte-level, character-level,
+    ]
+    topic_terms: [
+      fertility, "vocabulary size", "word segmentation", "morphological segmentation",
+      out-of-vocabulary, open-vocabulary,
+    ]
+    # Other senses of "token(izer)" that D-005 excludes (vision/speech
+    # tokenizers, ViT token pruning). Biology/molecule tokenizers are NOT
+    # excluded here: that boundary call is open in D-005.
+    title_exclude_terms: [
+      "visual tokenizer", "image tokenizer", "video tokenizer", "audio tokenizer",
+      "speech tokenizer", "visual tokenization", "image tokenization",
+      "point cloud", "token pruning", "token merging", "token reduction",
+    ]
+    topic_description: >-
+      Research where tokenization is a primary contribution or a main
+      experimental variable: subword tokenization algorithms such as BPE,
+      WordPiece, Unigram and SentencePiece; byte-level, character-level and
+      tokenizer-free language models; vocabulary size; multilingual tokenizer
+      fairness and fertility; and the effects of tokenization on arithmetic,
+      code and reasoning.
+    embedding_model: BAAI/bge-small-en-v1.5
+    embedding_batch_size: 64
+    # Set by eye on 31 real ambiguous papers (D-008): no clean gap between in
+    # and out; the audit measures the cost. Not tuned on the eval set.
+    embedding_threshold: 0.745

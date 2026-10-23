@@ -61,8 +61,24 @@ class AclConfig(StrictModel):
     enabled: bool
 
 
+class RelevanceConfig(StrictModel):
+    # A match in the title accepts (unless an exclude term is also in the title).
+    title_accept_terms: list[str] = Field(min_length=1)
+    # Extra terms that make a paper a candidate but are too weak to accept on.
+    topic_terms: list[str]
+    # Title phrases for senses of "token" outside the boundary.
+    title_exclude_terms: list[str]
+    # The D-005 boundary text the embedding judge compares abstracts with.
+    topic_description: str
+    embedding_model: str
+    embedding_batch_size: int = Field(ge=1)
+    # Cosine similarity at or above which an ambiguous paper is accepted.
+    embedding_threshold: float = Field(ge=-1, le=1)
+
+
 class CollectConfig(StrictModel):
     http: HttpConfig
     arxiv: ArxivConfig
     s2: S2Config
     acl: AclConfig
+    relevance: RelevanceConfig

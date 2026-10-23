@@ -38,3 +38,11 @@ collect:
     anchors: ["ARXIV:0000.00000"]
   acl:
     enabled: false
+  relevance:
+    title_accept_terms: [tokenizer, bpe, byte-pair encoding, subword]
+    topic_terms: [fertility]
+    title_exclude_terms: [visual tokenizer]
+    topic_description: "Tokenization research."
+    embedding_model: test/model
+    embedding_batch_size: 2
+    embedding_threshold: 0.5
