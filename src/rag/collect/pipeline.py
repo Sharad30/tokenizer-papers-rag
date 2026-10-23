@@ -352,7 +352,10 @@ def _linked_copies(
     client: PoliteClient, anthology: Any, records: list[ManifestRecord]
 ) -> list[ManifestRecord]:
     """The ACL copy of an accepted arXiv paper and vice versa, as separate records."""
-    present = {key for r in records for key in _id_keys(r) if not key.startswith("s2:")}
+    # Only a record *of that source* counts as the copy being present. An
+    # ACL record that knows its own arXiv id is not the arXiv record.
+    present = {f"arxiv:{r.arxiv_id}" for r in records if r.source is Source.ARXIV}
+    present |= {f"acl:{r.acl_id}" for r in records if r.source is Source.ACL}
     accepted = [r for r in records if r.relevance is Decision.ACCEPT]
     copies: list[tuple[ManifestRecord, CandidateRecord]] = []
     if anthology is not None:

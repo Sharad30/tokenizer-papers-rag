@@ -237,3 +237,58 @@ def test_stratified_round_robins_sources() -> None:
     pool.append(ManifestRecord(record_id="acl:x", source=Source.ACL, title="t"))
     picked = pipeline._stratified(pool, 2, random.Random(0))
     assert {r.source for r in picked} == {Source.ARXIV, Source.ACL}
+
+
+def test_linked_copies_fetches_missing_arxiv_copy_of_accepted_acl_paper(monkeypatch) -> None:
+    # Regression: an ACL record's own arxiv_id used to count as "arXiv copy
+    # present", so the arXiv record was never fetched.
+    accepted_acl = ManifestRecord(
+        record_id="acl:2022.acl-long.1",
+        source=Source.ACL,
+        title="Tokenizer Choice Matters",
+        arxiv_id="2201.00001",
+        acl_id="2022.acl-long.1",
+        relevance=Decision.ACCEPT,
+        decided_by=DecidedBy.KEYWORD,
+        reason=Reason.TITLE_TERM,
+        found_via=["acl_scan"],
+    )
+    arxiv_copy = ManifestRecord(
+        record_id="arxiv:2201.00001v2",
+        source=Source.ARXIV,
+        title="Tokenizer Choice Matters",
+        arxiv_id="2201.00001",
+    )
+    monkeypatch.setattr(
+        pipeline, "_fetch_arxiv", lambda client, ids: [arxiv_copy] if ids == ["2201.00001"] else []
+    )
+    copies = pipeline._linked_copies(client=None, anthology=None, records=[accepted_acl])
+    assert [c.record_id for c in copies] == ["arxiv:2201.00001v2"]
+    assert (copies[0].decided_by, copies[0].reason, copies[0].derived_from) == (
+        DecidedBy.INHERITED,
+        Reason.LINKED_MANIFESTATION,
+        "acl:2022.acl-long.1",
+    )
+    assert copies[0].found_via == ["acl_scan"]
+
+
+def test_linked_copies_skips_copy_already_present(monkeypatch) -> None:
+    acl_record = ManifestRecord(
+        record_id="acl:x",
+        source=Source.ACL,
+        title="T",
+        arxiv_id="2201.00001",
+        relevance=Decision.ACCEPT,
+    )
+    arxiv_record = ManifestRecord(
+        record_id="arxiv:2201.00001v1", source=Source.ARXIV, title="T", arxiv_id="2201.00001"
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_fetch_arxiv",
+        lambda client, ids: pytest.fail(f"unexpected fetch {ids}") if ids else [],
+    )
+    assert (
+        pipeline._linked_copies(client=None, anthology=None, records=[acl_record, arxiv_record])
+        == []
+    )
