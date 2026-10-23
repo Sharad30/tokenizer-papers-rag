@@ -161,8 +161,9 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Options considered:
   1. Every candidate with its decision and reason code. Pros: auditable, honest. Cons: thousands of rows (rejects moved to a gzipped file if the CSV passes ~10 MB).
   2. Accepted + ambiguous only; rejects summarised in stats. Pros: small. Cons: rejects can't be audited.
-- Choice: 1.
-- Evidence: none yet.
+- Choice: 1. Amended after the first full run (Sharad, 2026-10-23): accepted records in `manifest.csv` + `manifest.json`; rejects in `rejected.csv.gz` **without abstracts** (IDs, title, reason, matched terms and score kept, so every reject is still auditable and its abstract can be looked up by ID). `audit-sample` reads the full local records, so labels still see abstracts.
+- Alternatives at the amendment: rejects gzipped with abstracts (8.7 MB, ~17 MB total, re-added as a binary blob on each rerun); accepted only, rejects as counts (smallest, but rejects can't be audited from the repo).
+- Evidence: 19,044 rows came to 30 MB CSV + 42 MB JSON, almost all reject abstracts. Accepted (1,979): 3.3 MB CSV + 4.6 MB JSON. Rejects without abstracts, gzipped: 2.5 MB.
 - Tuned on eval set?: no
 - Revisit if: the size becomes a problem for git.
 
