@@ -17,6 +17,9 @@ class HttpConfig(StrictModel):
     # Wait before retry n (1-based) is backoff_base_s * 2**(n-1), unless the
     # server sends a Retry-After header.
     backoff_base_s: float = Field(ge=0)
+    # Upper bound on any single backoff wait, so late attempts don't grow to
+    # many minutes each.
+    max_backoff_s: float = Field(ge=0)
     # Minimum seconds between requests to the same host. Hosts not listed get
     # the default (e.g. open-access PDF links on arbitrary publisher sites).
     default_min_interval_s: float = Field(ge=0)

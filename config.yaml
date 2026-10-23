@@ -27,13 +27,17 @@ collect:
     user_agent: "tokenizer-papers-rag/0.1 (+https://github.com/Sharad30/tokenizer-papers-rag)"
     contact_email_env: RAG_CONTACT_EMAIL   # set in .env; appended as (mailto:...)
     timeout_s: 60
-    max_attempts: 5
-    backoff_base_s: 5      # waits 5, 10, 20, 40 s between attempts
+    # Semantic Scholar's shared (no-key) pool answered 429 on about half of
+    # first attempts in the first smoke run, and one batch call failed all 5
+    # attempts. More attempts with capped waits: 5, 10, 20, 40, 80, 120, 120 s.
+    max_attempts: 8
+    backoff_base_s: 5
+    max_backoff_s: 120
     default_min_interval_s: 1.0
     min_interval_s:
       export.arxiv.org: 3.0         # arXiv API terms: max 1 request / 3 s
       oaipmh.arxiv.org: 3.0         # no stated limit; same as the API to be safe
-      api.semanticscholar.org: 1.1  # no key: shared pool; 1 rps is the keyed limit
+      api.semanticscholar.org: 3.0  # no key: shared pool; 1.1 s drew frequent 429s
       aclanthology.org: 1.0         # no published policy; self-throttled
 
   arxiv:

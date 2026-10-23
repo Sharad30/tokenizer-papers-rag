@@ -179,3 +179,15 @@ def test_http_error_carries_status_and_whether_retries_ran_out(make_client) -> N
             client.request_text("GET", OTHER_URL)
     assert (permanent.value.status, permanent.value.retries_exhausted) == (404, False)
     assert (exhausted.value.status, exhausted.value.retries_exhausted) == (429, True)
+
+
+@respx.mock
+def test_backoff_is_capped(make_client, fake_clock, http_config) -> None:
+    http_config.max_attempts = 4
+    http_config.max_backoff_s = 3
+    respx.get(URL).mock(side_effect=[httpx.Response(503)] * 3 + [httpx.Response(200)])
+    with make_client() as client:
+        client.request_text("GET", URL)
+    # base 2 s doubling would be 2, 4, 8; the 3 s cap trims the last two.
+    # (The rate limiter adds 1 s after the first wait to reach its 3 s gap.)
+    assert fake_clock.sleeps == [2.0, 1.0, 3.0, 3.0]

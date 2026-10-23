@@ -29,6 +29,7 @@ def http_config() -> HttpConfig:
         timeout_s=5,
         max_attempts=3,
         backoff_base_s=2,
+        max_backoff_s=60,
         default_min_interval_s=0.5,
         min_interval_s={"api.example.org": 3.0},
     )

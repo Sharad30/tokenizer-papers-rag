@@ -213,7 +213,10 @@ class PoliteClient:
                 delay = (
                     wait_s
                     if wait_s is not None
-                    else self._config.backoff_base_s * 2 ** (attempt - 1)
+                    else min(
+                        self._config.backoff_base_s * 2 ** (attempt - 1),
+                        self._config.max_backoff_s,
+                    )
                 )
                 logger.warning(
                     "%s on %s (attempt %d/%d); retrying in %.0fs",
