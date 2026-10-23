@@ -22,7 +22,7 @@ from typing import Any
 from rag.collect import acl, arxiv, s2
 from rag.collect.download import download
 from rag.collect.http import PoliteClient
-from rag.collect.manifest import manifest_counts, read_manifest, write_manifest
+from rag.collect.manifest import manifest_counts, write_manifest
 from rag.collect.relevance import EmbeddingJudge, KeywordRules, sentence_transformer_encoder
 from rag.collect.schemas import (
     CandidateRecord,
@@ -502,9 +502,13 @@ def audit_sample(config: Config, per_decision: int, seed: int) -> Path:
 
     Linked copies and kept v1s are excluded: they inherit a decision rather
     than having one made, so they would only re-test the same paper.
+    Reads the download step's full records, not the committed manifest,
+    because labelling a reject needs its abstract (D-010 drops those).
     """
     records = [
-        r for r in read_manifest(config.paths.manifest) if r.decided_by is not DecidedBy.INHERITED
+        r
+        for r in read_jsonl(step_dir(config, "download") / RECORDS, ManifestRecord)
+        if r.decided_by is not DecidedBy.INHERITED
     ]
     rng = random.Random(seed)
     rows: list[ManifestRecord] = []

@@ -1,7 +1,14 @@
 import csv
 from pathlib import Path
 
-from rag.collect.manifest import MANIFEST_CSV, manifest_counts, read_manifest, write_manifest
+from rag.collect.manifest import (
+    MANIFEST_CSV,
+    REJECTED_CSV_GZ,
+    manifest_counts,
+    read_manifest,
+    read_rejected,
+    write_manifest,
+)
 from rag.collect.schemas import (
     DecidedBy,
     Decision,
@@ -48,11 +55,20 @@ RECORDS = [
 ]
 
 
-def test_json_round_trip_and_sorted(tmp_path: Path) -> None:
+def test_json_round_trip_holds_accepted_sorted(tmp_path: Path) -> None:
     write_manifest(RECORDS, tmp_path)
     loaded = read_manifest(tmp_path)
-    assert [r.record_id for r in loaded] == ["acl:2022.acl-long.1", "arxiv:2401.00002v1", "s2:zzz"]
-    assert sorted(loaded, key=lambda r: r.record_id) == sorted(RECORDS, key=lambda r: r.record_id)
+    assert [r.record_id for r in loaded] == ["acl:2022.acl-long.1", "arxiv:2401.00002v1"]
+    assert loaded == sorted(RECORDS[:2], key=lambda r: r.record_id)
+
+
+def test_rejects_go_to_gzipped_csv_without_abstracts(tmp_path: Path) -> None:
+    reject = RECORDS[2].model_copy(update={"abstract": "Long text."})
+    write_manifest([*RECORDS[:2], reject], tmp_path)
+    rows = read_rejected(tmp_path)
+    assert [r["record_id"] for r in rows] == ["s2:zzz"]
+    assert rows[0]["reason"] == "no_topic_term"
+    assert "abstract" not in rows[0]
 
 
 def test_csv_matches_json(tmp_path: Path) -> None:
@@ -69,9 +85,9 @@ def test_csv_matches_json(tmp_path: Path) -> None:
 
 def test_rewriting_is_byte_identical(tmp_path: Path) -> None:
     write_manifest(RECORDS, tmp_path)
-    first = (tmp_path / MANIFEST_CSV).read_bytes()
+    first = [(tmp_path / name).read_bytes() for name in (MANIFEST_CSV, REJECTED_CSV_GZ)]
     write_manifest(list(reversed(RECORDS)), tmp_path)
-    assert (tmp_path / MANIFEST_CSV).read_bytes() == first
+    assert [(tmp_path / name).read_bytes() for name in (MANIFEST_CSV, REJECTED_CSV_GZ)] == first
 
 
 def test_manifest_counts() -> None:

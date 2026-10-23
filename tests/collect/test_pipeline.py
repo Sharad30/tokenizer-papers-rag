@@ -12,7 +12,7 @@ import pytest
 import respx
 
 from rag.collect import pipeline
-from rag.collect.manifest import read_manifest
+from rag.collect.manifest import read_manifest, read_rejected
 from rag.collect.schemas import DecidedBy, Decision, DownloadStatus, ManifestRecord, Reason, Source
 from rag.common.config import load_config
 
@@ -156,13 +156,16 @@ def by_id(records: list[ManifestRecord]) -> dict[str, ManifestRecord]:
 def test_collect_all_end_to_end(config, mocked_sources, fake_encoder) -> None:
     pipeline.run_all(config)
     records = by_id(read_manifest(config.paths.manifest))
+    rejected = {r["record_id"]: r for r in read_rejected(config.paths.manifest)}
 
     assert set(records) == {
         "arxiv:2401.00001v2",  # seed query, also reached by snowball (folded in)
         "arxiv:2401.00001v1",  # revised v1 kept by D-009
-        "arxiv:2401.00002v1",  # seed query, rejected
         "arxiv:2401.00003v1",  # S2-only find, materialised as its arXiv record
         "arxiv:0000.00000v1",  # the anchor itself, materialised
+    }
+    assert set(rejected) == {
+        "arxiv:2401.00002v1",  # seed query, rejected
         "s2:p4",  # snowball find, rejected, stays an S2 record
         "s2:p6",  # ambiguous, rejected by the embedding judge
     }  # p5 is after corpus.max_date and never appears
@@ -187,11 +190,11 @@ def test_collect_all_end_to_end(config, mocked_sources, fake_encoder) -> None:
     assert materialised.s2_id == "p3"
     assert materialised.reason is Reason.TITLE_TERM  # its own decision, carried over
 
-    assert records["s2:p4"].reason is Reason.NO_TOPIC_TERM
-    judged = records["s2:p6"]
-    assert (judged.decided_by, judged.reason) == (DecidedBy.EMBEDDING, Reason.EMBEDDING_BELOW)
-    assert judged.embedding_score == pytest.approx(0.1)
-    assert records["arxiv:2401.00002v1"].download_status is DownloadStatus.NOT_ATTEMPTED
+    assert rejected["s2:p4"]["reason"] == Reason.NO_TOPIC_TERM
+    judged = rejected["s2:p6"]
+    assert (judged["decided_by"], judged["reason"]) == (DecidedBy.EMBEDDING, Reason.EMBEDDING_BELOW)
+    assert float(judged["embedding_score"]) == pytest.approx(0.1)
+    assert rejected["arxiv:2401.00002v1"]["download_status"] == DownloadStatus.NOT_ATTEMPTED
 
     stats = json.loads((config.paths.manifest / "stats.json").read_text())
     assert stats["counts"]["accepted"] == 4

@@ -1,10 +1,15 @@
 """The corpus manifest: one row per manifestation, every decision recorded (D-010).
 
-Written as JSON (exact types, for code) and CSV (for reading and auditing in
-a spreadsheet). List fields are joined with "; " in the CSV.
+Accepted records are written as JSON (exact types, for code) and CSV (for
+reading in a spreadsheet). Rejected records go to a gzipped CSV without
+abstracts: they are ~90% of rows and most of the bytes, and committing them
+in full would put ~70 MB in git. Every reject keeps its IDs, title and reason
+code, so it can still be audited and its abstract looked up by ID.
+List fields are joined with "; " in the CSVs.
 """
 
 import csv
+import gzip
 import io
 import json
 from collections import Counter
@@ -12,33 +17,48 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from rag.collect.schemas import Decision, ManifestRecord
-from rag.common.io import write_text_atomic
+from rag.common.io import write_bytes_atomic, write_text_atomic
 
 MANIFEST_JSON = "manifest.json"
 MANIFEST_CSV = "manifest.csv"
+REJECTED_CSV_GZ = "rejected.csv.gz"
+REJECTED_DROPPED_FIELDS = ("abstract",)
 LIST_SEPARATOR = "; "
 
 
 def write_manifest(records: Sequence[ManifestRecord], out_dir: Path) -> None:
     # Sorted so reruns produce identical files and git diffs show real changes.
     ordered = sorted(records, key=lambda r: r.record_id)
-    payload = [r.model_dump(mode="json") for r in ordered]
+    accepted = [r.model_dump(mode="json") for r in ordered if r.relevance is Decision.ACCEPT]
+    rejected = [r.model_dump(mode="json") for r in ordered if r.relevance is not Decision.ACCEPT]
     write_text_atomic(
-        out_dir / MANIFEST_JSON, json.dumps(payload, indent=1, ensure_ascii=False) + "\n"
+        out_dir / MANIFEST_JSON, json.dumps(accepted, indent=1, ensure_ascii=False) + "\n"
     )
-    write_text_atomic(out_dir / MANIFEST_CSV, _to_csv(payload))
+    write_text_atomic(out_dir / MANIFEST_CSV, _to_csv(accepted, _fields()))
+    rejected_csv = _to_csv(rejected, _fields(drop=REJECTED_DROPPED_FIELDS))
+    # mtime=0 keeps the gzip header fixed, so an unchanged rerun is byte-identical.
+    write_bytes_atomic(out_dir / REJECTED_CSV_GZ, gzip.compress(rejected_csv.encode(), mtime=0))
 
 
 def read_manifest(out_dir: Path) -> list[ManifestRecord]:
+    """The accepted records, with their full types."""
     rows = json.loads((out_dir / MANIFEST_JSON).read_text(encoding="utf-8"))
     return [ManifestRecord.model_validate(row) for row in rows]
 
 
-def _to_csv(rows: list[dict]) -> str:
+def read_rejected(out_dir: Path) -> list[dict[str, str]]:
+    """The rejected records as CSV rows (strings; no abstracts)."""
+    text = gzip.decompress((out_dir / REJECTED_CSV_GZ).read_bytes()).decode("utf-8")
+    return list(csv.DictReader(io.StringIO(text)))
+
+
+def _fields(drop: Sequence[str] = ()) -> list[str]:
+    return [f for f in ManifestRecord.model_fields if f not in drop]
+
+
+def _to_csv(rows: list[dict], fields: list[str]) -> str:
     buffer = io.StringIO()
-    writer = csv.DictWriter(
-        buffer, fieldnames=list(ManifestRecord.model_fields), lineterminator="\n"
-    )
+    writer = csv.DictWriter(buffer, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
     writer.writeheader()
     for row in rows:
         writer.writerow(
