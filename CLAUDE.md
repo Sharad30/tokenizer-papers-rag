@@ -132,7 +132,7 @@ Avoid: `wip`, `fix stuff`, `update`, `changes`, `final`, or messages that only r
 Update at the end of each phase.
 
 - [x] Phase 0: Scaffold (2026-10-16; Sharad's "You do" tasks still open)
-- [ ] Phase 1: Corpus collection
+- [x] Phase 1: Corpus collection (2026-10-23; audit labels and other "You do" tasks still open)
 - [ ] Phase 2: Parse and chunk
 - [ ] Phase 3: Evaluation set
 - [ ] Phase 4: Baseline retrieval + eval harness
@@ -144,10 +144,12 @@ Update at the end of each phase.
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: 1 (not started). Notes for the next session:
-- Phase 0 built the scaffold: `rag` CLI with stubs, strict config, io/stats/provenance helpers, 40 tests. See `notes/phase-0-scaffold.md`.
-- D-001 to D-004 in DECISIONS.md are `proposed`, awaiting Sharad's review.
-- Open "You do" items: the `TODO(sharad)` config field (`src/rag/common/config.py`, `src/rag/collect/cli.py`) and the first JOURNAL.md entry.
-- Typer 0.27 vendors Click privately (`typer._click`): don't `import click`; use `typer.core` / `typer.testing`.
-- Local uv is 0.11.7 (docs describe 0.12+ defaults).
-- Phase 1: consider adding mypy (D-004).
+Current phase: 2 (not started). Notes for the next session:
+- Phase 1 built `rag collect` (discover, resolve, filter, licence, download, manifest, audit-sample). First full run: 19,044 candidates, 1,979 accepted manifestations (1,761 decided directly), 1,782 PDFs in `data/raw/pdfs/`. See `notes/phase-1-collect.md` and the `exp(collect)` commit.
+- Committed manifest: accepted in `data/manifest/manifest.{json,csv}`, rejects in `rejected.csv.gz` without abstracts (D-010, amended). Full records are in `data/raw/downloaded/records.jsonl` (local only).
+- PLAN's exit criterion "audit numbers in DECISIONS.md" waits on Sharad labelling `data/manifest/audit_sample.csv`. `embedding_threshold` 0.745 was set by eye; if it's re-tuned after the labels, D-008 must say so.
+- Sharad's open "You do" items: D-005 inclusion rule in his own words; audit labels + precision/recall by hand; one extra seed query and a re-run; Phase 1 journal predictions; plus the Phase 0 items (`TODO(sharad)` config field, first journal entry). D-001 to D-012 are `proposed`.
+- S2 runs without a key: 3 s spacing, 8 attempts, backoff capped at 120 s. Reruns are free from `data/raw/http_cache/`.
+- Known biases: S2 citations come newest first under the 10k-per-anchor cap (2025–26 inflated); OpenReview skipped (D-011); 155 accepted records have unknown licence.
+- macOS: the stock `MANIFEST` ignore rule matched `data/manifest/`; `.gitignore` now re-includes it.
+- Typer 0.27 vendors Click privately (`typer._click`): don't `import click`. Local uv is 0.11.7.
