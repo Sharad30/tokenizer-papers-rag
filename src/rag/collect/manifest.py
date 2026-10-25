@@ -27,17 +27,26 @@ LIST_SEPARATOR = "; "
 
 
 def write_manifest(records: Sequence[ManifestRecord], out_dir: Path) -> None:
+    accepted = [r for r in records if r.relevance is Decision.ACCEPT]
+    write_accepted(accepted, out_dir)
     # Sorted so reruns produce identical files and git diffs show real changes.
-    ordered = sorted(records, key=lambda r: r.record_id)
-    accepted = [r.model_dump(mode="json") for r in ordered if r.relevance is Decision.ACCEPT]
-    rejected = [r.model_dump(mode="json") for r in ordered if r.relevance is not Decision.ACCEPT]
-    write_text_atomic(
-        out_dir / MANIFEST_JSON, json.dumps(accepted, indent=1, ensure_ascii=False) + "\n"
-    )
-    write_text_atomic(out_dir / MANIFEST_CSV, _to_csv(accepted, _fields()))
+    rejected = [
+        r.model_dump(mode="json")
+        for r in sorted(records, key=lambda r: r.record_id)
+        if r.relevance is not Decision.ACCEPT
+    ]
     rejected_csv = _to_csv(rejected, _fields(drop=REJECTED_DROPPED_FIELDS))
     # mtime=0 keeps the gzip header fixed, so an unchanged rerun is byte-identical.
     write_bytes_atomic(out_dir / REJECTED_CSV_GZ, gzip.compress(rejected_csv.encode(), mtime=0))
+
+
+def write_accepted(accepted: Sequence[ManifestRecord], out_dir: Path) -> None:
+    """Rewrite only the accepted part (used by `rag parse mark` to fill included_in_index)."""
+    rows = [r.model_dump(mode="json") for r in sorted(accepted, key=lambda r: r.record_id)]
+    write_text_atomic(
+        out_dir / MANIFEST_JSON, json.dumps(rows, indent=1, ensure_ascii=False) + "\n"
+    )
+    write_text_atomic(out_dir / MANIFEST_CSV, _to_csv(rows, _fields()))
 
 
 def read_manifest(out_dir: Path) -> list[ManifestRecord]:
