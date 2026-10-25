@@ -67,3 +67,46 @@ Phase: 1  ·  Type: prediction
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-25: Which element types parse worst
+Phase: 2  ·  Type: prediction
+
+### Prediction (Sharad):
+(tables, figure captions, formulas, section headings, references: which parse worst, and why? Write before opening data/parsed/ or docs/figures/phase2-*)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(from data/parsed/*/stats.json and your 5-paper inspection below)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
+
+## 2026-10-25: Five papers' chunks next to their PDFs
+Phase: 2  ·  Type: result
+
+### Papers inspected (Sharad):
+(5 random record ids; `uv run rag inspect paper <id>` next to data/raw/pdfs/<id>.pdf)
+
+### Problems found (Sharad):
+(per paper: missed or bogus headings, merged sections, broken tables, garbled formulas, lost text, wrong pages)
+
+### What happened:
+
+### Follow-ups:
+
+## 2026-10-25: Changing the chunk size
+Phase: 2  ·  Type: prediction
+
+### Prediction (Sharad):
+(change parse.chunk.target_tokens, re-run `rag parse chunk --limit 20`: what happens to chunks per paper and the length histogram?)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(stats from data/parsed/chunks/stats.json before and after)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
