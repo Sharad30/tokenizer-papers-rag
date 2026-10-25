@@ -268,13 +268,20 @@ def chunk(
         counts["chunks"] = write_jsonl(out / CHUNKS, chunks)
         write_jsonl(out / STATUS, index_status)
         counts.update(_chunk_counts(chunks, per_paper, index_status))
+        # The chunker guarantees both limits; a failure here means a bug, not bad data.
         limit_tokens = config.parse.chunk.embedding_max_tokens
-        over = [c for c in chunks if _model_tokens(c) > limit_tokens]
-        # The chunker guarantees this; a failure here means a bug, not bad data.
+        max_body = config.parse.chunk.max_tokens
         stats["failures"] += [
             StageFailure(item_id=c.chunk_id, reason=f"{_model_tokens(c)} tokens > {limit_tokens}")
-            for c in over
+            for c in chunks
+            if _model_tokens(c) > limit_tokens
         ]
+        stats["failures"] += [
+            StageFailure(item_id=c.chunk_id, reason=f"body {c.token_count} > max {max_body}")
+            for c in chunks
+            if c.token_count > max_body
+        ]
+        counts["over_max_tokens"] = sum(c.token_count > max_body for c in chunks)
         stats["counts"].update(dict(sorted(counts.items())))
 
 
