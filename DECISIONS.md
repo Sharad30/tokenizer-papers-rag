@@ -188,3 +188,117 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet. The source-overlap probe shows what snowballing adds.
 - Tuned on eval set?: no
 - Revisit if: the external recall check (★ in PLAN) shows systematic gaps.
+
+## D-013: GROBID CRF image, not the full deep-learning image
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: GROBID 0.9.1 (2026-08-04) ships two images. This machine is an arm64 Mac (10 cores, 16 GB RAM, ~32 GB free disk), CPU only.
+- Options considered:
+  1. `grobid/grobid:0.9.1-crf`: 0.5 GB, native arm64 build, fast on CPU. Cons: lacks the most accurate deep-learning models (references, headers, some zones).
+  2. `grobid/grobid:0.9.1-full`: 14.8 GB, deep-learning + CRF. Cons: amd64 only (emulated here), deep-learning models slow on CPU, half the free disk.
+  3. Layout-model parsers (Marker, Nougat). Cons: need a GPU in practice; PLAN names GROBID.
+- Choice: 1.
+- Why: the only option that runs natively and quickly here; quality is checked by Sharad's 5-paper inspection.
+- Evidence: Docker Hub tag listing and GROBID Docker docs, 2026-10-25.
+- Tuned on eval set?: no
+- Revisit if: the inspection shows poor section or reference extraction. CRF vs full on 20 papers is a candidate Phase 9 deep dive.
+
+## D-014: GROBID consolidation off
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: `consolidateHeader` defaults to 1, which makes GROBID call CrossRef for every paper.
+- Options considered:
+  1. `consolidateHeader=0`, `consolidateCitations=0`. Pros: no hidden external calls; the manifest already has authoritative metadata. Cons: reference entries keep only what GROBID extracted.
+  2. Defaults (header 1). Pros: richer metadata. Cons: an external call per paper that we neither throttle nor cache.
+- Choice: 1.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: Phase 5 dedup needs better reference metadata (DOIs, arXiv IDs).
+
+## D-015: PyMuPDF as the fallback parser
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: some PDFs come back from GROBID empty (204) or with an error (500).
+- Options considered:
+  1. PyMuPDF (named in PLAN). Pros: good text blocks and reading order. Cons: AGPL-3.0; if the repo ever gets a licence, it must be AGPL-compatible.
+  2. pypdf (BSD-3). Pros: permissive. Cons: plainer text, worse column handling.
+  3. No fallback; failures are only flagged. Pros: simplest. Cons: drops papers.
+- Choice: 1. Fallback papers are marked `parser=pymupdf` and treated as lower quality (one flat section per page, no references).
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: licensing matters, or the fallback share is large.
+
+## D-016: Count tokens with the embedding model's own tokenizer
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: chunk limits must hold for the model that embeds them; anything past its 512-token limit is silently dropped.
+- Options considered:
+  1. The tokenizer of `BAAI/bge-small-en-v1.5` (Phase 4 baseline). Pros: exact. Cons: limits are model-specific.
+  2. tiktoken. Cons: a different vocabulary, so counts are wrong for this model.
+  3. Words × 1.3. Cons: an approximation that can overflow silently.
+- Choice: 1. Header tokens and the 2 special tokens count toward the limit.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: Phase 6 adds a model with another vocabulary (SPECTER2 uses SciBERT's): re-count and check truncation then.
+
+## D-017: Pack paragraphs within a section, overlap by whole sentences
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: PLAN fixes "never across sections", a ~300-token target and small overlap; the packing method is open.
+- Options considered:
+  1. Greedy paragraph packing to `target_tokens`, long paragraphs split on sentences, overlap = previous chunk's last sentences up to `overlap_tokens`. Pros: never cuts a sentence or citation marker. Cons: chunk sizes vary.
+  2. Fixed token windows with token overlap. Pros: uniform. Cons: cuts sentences and citation markers.
+  3. One chunk per paragraph. Pros: precise boundaries. Cons: many tiny chunks with weak embeddings.
+- Choice: 1 (target 300, max 448, overlap 40).
+- Evidence: none yet; the chunk-size ablation in Phase 4 measures it.
+- Tuned on eval set?: no
+- Revisit if: the Phase 4 granularity ablation favours another size.
+
+## D-018: Figure captions as their own chunks
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Options considered:
+  1. Own chunks. Pros: self-contained; "Figure 3 shows …" answers live there; paragraph chunks stay focused. Cons: short chunks.
+  2. Attached to the paragraph that first cites the figure. Pros: context. Cons: dilutes that chunk.
+  3. Dropped. Cons: loses content.
+- Choice: 1.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: caption chunks crowd the top-k with low-value hits.
+
+## D-019: Keep short display formulas, replace long ones with a placeholder
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: GROBID's formula text is often garbled; long garbled formulas add noise tokens.
+- Options considered:
+  1. Keep ≤ `formula_max_chars` (120), else `[equation (n)]`. Pros: short formulas carry meaning, long noise is dropped. Cons: a threshold to choose.
+  2. Always a placeholder. Cons: loses short, useful formulas.
+  3. Always keep. Cons: noise.
+- Choice: 1. Inline formulas stay in the text.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: questions about formulas fail in the eval.
+
+## D-020: Tables as caption + markdown pipe rows
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Options considered:
+  1. Caption + pipe rows, split by rows with the header row repeated. Pros: compact, readable. Cons: cells far from the header lose their column name.
+  2. "header = value" records per row. Pros: each cell keeps its column. Cons: longer.
+  3. One generated description per table. Cons: needs an LLM; deferred to the PLAN exploration.
+- Choice: 1, as a starting point; PLAN's ★ table-representation exploration compares them once the harness exists.
+- Evidence: none yet. CRF table-cell extraction is weak; the stats show how often tables have no rows.
+- Tuned on eval set?: no
+- Revisit if: the table exploration says so.
+
+## D-021: `included_in_index` is written back into the manifest
+- Date / Phase: 2026-10-25 / Phase 2
+- Status: proposed
+- Context: PLAN's Phase 2 exit asks for `included_in_index` to be filled in; stages normally write only their own folder.
+- Options considered:
+  1. A final `rag parse mark` step updates the committed manifest. Pros: the manifest stays the single record of the corpus. Cons: one documented exception to "write only your own folder".
+  2. Status only in `data/parsed/chunks/status.jsonl`. Pros: folders stay pure. Cons: gitignored, so repo readers can't see what was indexed.
+- Choice: 1. True when the paper has at least one chunk.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: later stages need finer status (e.g. dedup exclusions in Phase 5).
