@@ -55,3 +55,25 @@ collect:
   audit:
     sample_per_decision: 2
     seed: 0
+parse:
+  grobid:
+    url: http://grobid.test
+    image: grobid/grobid:test
+    workers: 2
+    timeout_s: 5
+    busy_retry_s: 1
+    max_attempts: 3
+    consolidate_header: 0
+    consolidate_citations: 0
+    tei_coordinates: [p, s]
+  fallback:
+    enabled: true
+  chunk:
+    tokenizer_model: test/whitespace
+    embedding_max_tokens: 40
+    target_tokens: 20
+    max_tokens: 30
+    overlap_tokens: 5
+    formula_max_chars: 20
+    table_max_rows_per_chunk: 2
+    captions: own_chunk

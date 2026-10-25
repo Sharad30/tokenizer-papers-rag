@@ -142,3 +142,27 @@ collect:
   audit:
     sample_per_decision: 25
     seed: 13
+
+parse:
+  grobid:
+    url: http://localhost:8070
+    # CRF-only image: native arm64, 0.5 GB, fast on CPU (D-013).
+    image: grobid/grobid:0.9.1-crf
+    workers: 4
+    timeout_s: 180
+    busy_retry_s: 8
+    max_attempts: 5
+    consolidate_header: 0       # no CrossRef calls from inside GROBID (D-014)
+    consolidate_citations: 0
+    tei_coordinates: [p, s, head, figure, formula, biblStruct]
+  fallback:
+    enabled: true               # PyMuPDF when GROBID gives nothing (D-015)
+  chunk:
+    tokenizer_model: BAAI/bge-small-en-v1.5   # Phase 4 baseline embedder (D-016)
+    embedding_max_tokens: 512
+    target_tokens: 300
+    max_tokens: 448             # leaves room for the "Title > Section" header
+    overlap_tokens: 40
+    formula_max_chars: 120
+    table_max_rows_per_chunk: 25
+    captions: own_chunk

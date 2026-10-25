@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from rag.collect.config import CollectConfig
 from rag.common.schemas import StrictModel
+from rag.parse.config import ParseConfig
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
 
@@ -56,6 +57,7 @@ class Config(StrictModel):
     logging: LoggingConfig
     corpus: CorpusConfig
     collect: CollectConfig
+    parse: ParseConfig
     # TODO(sharad): Phase 0 "You do": add one config field of your own here
     # (and to config.yaml), then use it in the `rag collect` stub in
     # src/rag/collect/cli.py.
