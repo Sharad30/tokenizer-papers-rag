@@ -54,23 +54,23 @@ def test_config_show_round_trips(repo_config_path: Path) -> None:
 
 
 def test_stub_reports_limit(repo_config_path: Path) -> None:
-    result = runner.invoke(app, ["--config", str(repo_config_path), "parse", "--limit", "3"])
+    result = runner.invoke(app, ["--config", str(repo_config_path), "dedup", "--limit", "3"])
     assert result.exit_code == 0, result.output
-    assert "[stub] rag parse" in result.stdout
+    assert "[stub] rag dedup" in result.stdout
     assert "limit=3" in result.stdout
 
 
 def test_limit_must_be_positive(repo_config_path: Path) -> None:
-    result = runner.invoke(app, ["--config", str(repo_config_path), "parse", "--limit", "0"])
+    result = runner.invoke(app, ["--config", str(repo_config_path), "dedup", "--limit", "0"])
     assert result.exit_code == 2
 
 
 def test_config_path_from_env_var(repo_config_path: Path) -> None:
-    result = runner.invoke(app, ["parse"], env={"RAG_CONFIG": str(repo_config_path)})
+    result = runner.invoke(app, ["dedup"], env={"RAG_CONFIG": str(repo_config_path)})
     assert result.exit_code == 0, result.output
 
 
 def test_missing_config_fails_with_clear_message(tmp_path: Path) -> None:
-    result = runner.invoke(app, ["--config", str(tmp_path / "nope.yaml"), "parse"])
+    result = runner.invoke(app, ["--config", str(tmp_path / "nope.yaml"), "dedup"])
     assert result.exit_code == 1
     assert "Config file not found" in result.stderr

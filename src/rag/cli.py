@@ -18,7 +18,7 @@ from rag.common.config import DEFAULT_CONFIG_PATH
 from rag.dedup.cli import dedup
 from rag.eval.cli import run_eval
 from rag.index.cli import index
-from rag.parse.cli import parse
+from rag.parse import cli as parse_cli
 from rag.report.cli import report
 
 app = typer.Typer(
@@ -52,7 +52,7 @@ def config_show(ctx: typer.Context) -> None:
 
 # Registered in pipeline order, which is also the order `rag --help` lists them.
 app.add_typer(collect_cli.app, name="collect")
-app.command()(parse)
+app.add_typer(parse_cli.app, name="parse")
 app.command()(dedup)
 app.command()(index)
 app.command("eval")(run_eval)

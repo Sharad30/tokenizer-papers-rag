@@ -21,9 +21,10 @@ def paper(
     ctx: typer.Context,
     paper_id: Annotated[str, typer.Argument(help="Paper record id from the manifest")],
 ) -> None:
-    """Show one paper's parsed sections and chunks."""
-    config = get_config(ctx)
-    print_stub(f"inspect paper {paper_id}", "2", str(config.paths.parsed), "terminal", None)
+    """Show one paper's chunks under their section headings."""
+    from rag.parse.show import render_paper
+
+    typer.echo(render_paper(get_config(ctx), paper_id))
 
 
 @app.command()
