@@ -199,7 +199,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   3. Layout-model parsers (Marker, Nougat). Cons: need a GPU in practice; PLAN names GROBID.
 - Choice: 1.
 - Why: the only option that runs natively and quickly here; quality is checked by Sharad's 5-paper inspection.
-- Evidence: Docker Hub tag listing and GROBID Docker docs, 2026-10-25.
+- Evidence: Docker Hub tag listing and GROBID Docker docs, 2026-10-25. First full run: 1,781 of 1,782 PDFs parsed in 13.5 min with 4 workers (median 1.7 s per PDF); the one failure is a scanned PDF with no text layer. Seen quality problems: a formula fragment labelled as a heading (BPE paper; now filtered), missed headings merged into paragraphs, weak table cells (BPE Table 1 missing, Table 2 rows are caption lines).
 - Tuned on eval set?: no
 - Revisit if: the inspection shows poor section or reference extraction. CRF vs full on 20 papers is a candidate Phase 9 deep dive.
 
@@ -223,6 +223,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   1. PyMuPDF (named in PLAN). Pros: good text blocks and reading order. Cons: AGPL-3.0; if the repo ever gets a licence, it must be AGPL-compatible.
   2. pypdf (BSD-3). Pros: permissive. Cons: plainer text, worse column handling.
   3. No fallback; failures are only flagged. Pros: simplest. Cons: drops papers.
+- Evidence: in the first full run the fallback rescued no papers; the only GROBID failure was a scanned PDF with no text for either parser.
 - Choice: 1. Fallback papers are marked `parser=pymupdf` and treated as lower quality (one flat section per page, no references). Pinned to `>=1.28.2,<2`: PyMuPDF 2.0 makes its layout package (onnxruntime, networkx, pymupdf4llm) a required dependency, and plain text blocks need none of it.
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
@@ -236,7 +237,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   1. The tokenizer of `BAAI/bge-small-en-v1.5` (Phase 4 baseline). Pros: exact. Cons: limits are model-specific.
   2. tiktoken. Cons: a different vocabulary, so counts are wrong for this model.
   3. Words × 1.3. Cons: an approximation that can overflow silently.
-- Choice: 1. Header tokens and the 2 special tokens count toward the limit.
+- Choice: 1. Header tokens and the 2 special tokens count toward the limit. Over-long text is cut only at the first token of a word: the full run showed that mid-word cuts (and, in Korean, cuts between jamo tokens that share a character) change the token count when pieces are rejoined.
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: Phase 6 adds a model with another vocabulary (SPECTER2 uses SciBERT's): re-count and check truncation then.
@@ -250,7 +251,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   2. Fixed token windows with token overlap. Pros: uniform. Cons: cuts sentences and citation markers.
   3. One chunk per paragraph. Pros: precise boundaries. Cons: many tiny chunks with weak embeddings.
 - Choice: 1 (target 300, max 448, overlap 40).
-- Evidence: none yet; the chunk-size ablation in Phase 4 measures it.
+- Evidence: first full run: 93,031 chunks, paragraph median 212 tokens, 0 over max, max model input 512. The Phase 4 chunk-size ablation measures retrieval effect.
 - Tuned on eval set?: no
 - Revisit if: the Phase 4 granularity ablation favours another size.
 
@@ -274,7 +275,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   1. Keep ≤ `formula_max_chars` (120), else `[equation (n)]`. Pros: short formulas carry meaning, long noise is dropped. Cons: a threshold to choose.
   2. Always a placeholder. Cons: loses short, useful formulas.
   3. Always keep. Cons: noise.
-- Choice: 1. Inline formulas stay in the text.
+- Choice: 1. Inline formulas stay in the text. First full run: 1,682 of 13,586 display formulas became placeholders; CRF GROBID also routes some figure text into formulas.
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: questions about formulas fail in the eval.
