@@ -223,7 +223,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   1. PyMuPDF (named in PLAN). Pros: good text blocks and reading order. Cons: AGPL-3.0; if the repo ever gets a licence, it must be AGPL-compatible.
   2. pypdf (BSD-3). Pros: permissive. Cons: plainer text, worse column handling.
   3. No fallback; failures are only flagged. Pros: simplest. Cons: drops papers.
-- Choice: 1. Fallback papers are marked `parser=pymupdf` and treated as lower quality (one flat section per page, no references).
+- Choice: 1. Fallback papers are marked `parser=pymupdf` and treated as lower quality (one flat section per page, no references). Pinned to `>=1.28.2,<2`: PyMuPDF 2.0 makes its layout package (onnxruntime, networkx, pymupdf4llm) a required dependency, and plain text blocks need none of it.
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: licensing matters, or the fallback share is large.
