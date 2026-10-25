@@ -133,7 +133,7 @@ Update at the end of each phase.
 
 - [x] Phase 0: Scaffold (2026-10-16; Sharad's "You do" tasks still open)
 - [x] Phase 1: Corpus collection (2026-10-23; audit labels and other "You do" tasks still open)
-- [ ] Phase 2: Parse and chunk
+- [x] Phase 2: Parse and chunk (2026-10-25; Sharad's inspection and chunk-size tasks still open)
 - [ ] Phase 3: Evaluation set
 - [ ] Phase 4: Baseline retrieval + eval harness
 - [ ] Phase 5: Versions and near-duplicates
@@ -144,12 +144,12 @@ Update at the end of each phase.
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: 2 (not started). Notes for the next session:
-- Phase 1 built `rag collect` (discover, resolve, filter, licence, download, manifest, audit-sample). First full run: 19,044 candidates, 1,979 accepted manifestations (1,761 decided directly), 1,782 PDFs in `data/raw/pdfs/`. See `notes/phase-1-collect.md` and the `exp(collect)` commit.
-- Committed manifest: accepted in `data/manifest/manifest.{json,csv}`, rejects in `rejected.csv.gz` without abstracts (D-010, amended). Full records are in `data/raw/downloaded/records.jsonl` (local only).
-- PLAN's exit criterion "audit numbers in DECISIONS.md" waits on Sharad labelling `data/manifest/audit_sample.csv`. `embedding_threshold` 0.745 was set by eye; if it's re-tuned after the labels, D-008 must say so.
-- Sharad's open "You do" items: D-005 inclusion rule in his own words; audit labels + precision/recall by hand; one extra seed query and a re-run; Phase 1 journal predictions; plus the Phase 0 items (`TODO(sharad)` config field, first journal entry). D-001 to D-012 are `proposed`.
-- S2 runs without a key: 3 s spacing, 8 attempts, backoff capped at 120 s. Reruns are free from `data/raw/http_cache/`.
-- Known biases: S2 citations come newest first under the 10k-per-anchor cap (2025–26 inflated); OpenReview skipped (D-011); 155 accepted records have unknown licence.
-- macOS: the stock `MANIFEST` ignore rule matched `data/manifest/`; `.gitignore` now re-includes it.
+Current phase: 3 (not started). Notes for the next session:
+- Phase 2 built `rag parse` (grobid, structure, chunk, mark, all) and `rag inspect paper`. First full run: 1,781 of 1,979 accepted papers indexed (197 no PDF, 1 scanned), 93,031 chunks in `data/parsed/chunks/chunks.jsonl`. See `notes/phase-2-parse.md`.
+- GROBID: `make grobid-up` (Docker Desktop must be running; image `grobid/grobid:0.9.1-crf` from config). TEI files in `data/parsed/tei/` are the cache, so reruns only re-send failures.
+- Chunks: bge-small tokenizer, target 300 / max 448 / overlap 40; header stored separately (`Chunk.header`) and must be prepended at embedding time in Phase 4. References are in `data/parsed/papers/references.jsonl`, never chunked.
+- `rag parse mark` writes `included_in_index` into the manifest; rerun it after `rag collect manifest`. It skips after a `--limit` run.
+- D-013 to D-021 are `proposed`. PyMuPDF is pinned `<2` (2.0 pulls in an ONNX layout stack).
+- Sharad's open "You do" items: Phase 2 inspection of 5 papers and the chunk-size comparison (journal skeletons added); Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
+- Chunks include linked copies and kept v1s on purpose; Phase 5 dedups.
 - Typer 0.27 vendors Click privately (`typer._click`): don't `import click`. Local uv is 0.11.7.
