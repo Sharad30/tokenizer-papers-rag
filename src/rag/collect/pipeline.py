@@ -11,10 +11,7 @@ paths.manifest (committed).
 import logging
 import os
 import random
-import time
 from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
-from datetime import UTC, datetime
 from itertools import islice
 from pathlib import Path
 from typing import Any
@@ -36,9 +33,9 @@ from rag.collect.schemas import (
 )
 from rag.collect.versions import kept_v1, needs_v1_check
 from rag.common.config import Config
-from rag.common.io import read_jsonl, write_jsonl, write_stats, write_text_atomic
-from rag.common.provenance import config_hash, git_commit
-from rag.common.schemas import StageFailure, StageStats
+from rag.common.io import read_jsonl, write_jsonl, write_text_atomic
+from rag.common.schemas import StageFailure
+from rag.common.stats import stage_stats
 
 logger = logging.getLogger(__name__)
 
@@ -72,28 +69,8 @@ def make_client(config: Config) -> PoliteClient:
     )
 
 
-@contextmanager
-def _stats(config: Config, step: str, out_dir: Path, limit: int | None) -> Iterator[dict]:
-    """Collects counts and failures during a step, then writes its stats.json."""
-    started = datetime.now(UTC)
-    tick = time.monotonic()
-    collected: dict[str, Any] = {"counts": {}, "failures": []}
-    yield collected
-    collected["counts"]["seconds"] = round(time.monotonic() - tick)
-    write_stats(
-        out_dir,
-        StageStats(
-            stage=f"collect.{step}",
-            started_at=started,
-            finished_at=datetime.now(UTC),
-            limit=limit,
-            counts=collected["counts"],
-            failures=collected["failures"],
-            git_commit=git_commit(),
-            config_hash=config_hash(config),
-        ),
-    )
-    logger.info("collect %s: %s", step, collected["counts"])
+def _stats(config: Config, step: str, out_dir: Path, limit: int | None):
+    return stage_stats(config, f"collect.{step}", out_dir, limit)
 
 
 def _cap(configured: int, limit: int | None) -> int:
