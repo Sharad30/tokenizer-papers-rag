@@ -49,6 +49,9 @@ class Sentence(StrictModel):
 class Paragraph(StrictModel):
     sentences: list[Sentence]
     page: int | None = None  # first page, from GROBID coords
+    # Set when this "paragraph" is a display formula, kept in reading order;
+    # the chunker keeps it or swaps in a placeholder (D-019).
+    formula_id: str | None = None
 
 
 class Section(StrictModel):

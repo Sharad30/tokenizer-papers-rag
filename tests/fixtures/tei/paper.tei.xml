@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic GROBID-style TEI for tests. Text is invented. -->
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt><title level="a" type="main">GROBID Title Garbled</title></titleStmt>
+    </fileDesc>
+    <profileDesc>
+      <abstract>
+        <div><p><s coords="1,50,100,400,10">We study merge rules.</s><s>They matter.</s></p></div>
+      </abstract>
+    </profileDesc>
+  </teiHeader>
+  <text xml:lang="en">
+    <body>
+      <div><head n="1">Introduction</head>
+        <p coords="1,50,300,400,40"><s>Subword units help <ref type="bibr" target="#b0">(Doe et al., 2016)</ref>.</s><s>See <ref type="figure" target="#fig_0">Figure 1</ref> and <ref type="bibr" target="#b1">[2]</ref>, <ref type="bibr" target="#b0">[1]</ref>.</s></p>
+      </div>
+      <div><head n="2.">Method</head>
+        <p coords="2,50,100,400,40"><s>We define a merge.</s></p>
+        <formula xml:id="formula_0" coords="2,50,200,400,20">f(x) = x + 1<label>(1)</label></formula>
+      </div>
+      <div>
+        <p coords="2,50,300,400,40"><s>Continued after a figure.</s></p>
+      </div>
+      <div><head n="2.1">Merge rules</head>
+        <p><s>Rules are learned.</s></p>
+        <list><item>First item.</item></list>
+      </div>
+      <div><head>Discussion</head>
+        <p>No sentence tags here.</p>
+      </div>
+      <figure xml:id="fig_0" coords="3,50,100,400,200"><head>Figure 1 :</head><label>1</label><figDesc>Merges over time.</figDesc><graphic/></figure>
+      <figure type="table" xml:id="tab_0" coords="4,50,100,400,200"><head>Table 1 :</head><label>1</label><figDesc>Vocabulary sizes.</figDesc>
+        <table><row><cell>Model</cell><cell>Vocab</cell></row><row><cell>A</cell><cell>32k</cell></row><row><cell></cell><cell></cell></row></table>
+      </figure>
+    </body>
+    <back>
+      <div type="acknowledgement"><div><head>Acknowledgements</head><p>Thanks.</p></div></div>
+      <div type="annex"><div><head n="A">Extra results</head><p><s>More numbers.</s></p></div></div>
+      <div type="references">
+        <listBibl>
+          <biblStruct xml:id="b0">
+            <analytic>
+              <title level="a" type="main">Neural units for rare words</title>
+              <author><persName><forename type="first">Jane</forename><surname>Doe</surname></persName></author>
+              <author><persName><forename type="first">Ann</forename><forename type="middle">B</forename><surname>Roe</surname></persName></author>
+              <idno type="arXiv">arXiv:1508.00001</idno>
+            </analytic>
+            <monogr><title level="m">Proceedings of SynthConf</title><imprint><date type="published" when="2016-08"/></imprint></monogr>
+            <note type="raw_reference">J. Doe and A. B. Roe. 2016. Neural units for rare words. SynthConf.</note>
+          </biblStruct>
+          <biblStruct xml:id="b1">
+            <monogr><title level="m">A Book on Tokens</title><author><persName><surname>Poe</surname></persName></author><imprint><date/></imprint></monogr>
+            <idno type="DOI">10.0000/synthetic.1</idno>
+          </biblStruct>
+        </listBibl>
+      </div>
+    </back>
+  </text>
+</TEI>
