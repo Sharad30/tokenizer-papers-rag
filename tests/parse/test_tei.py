@@ -44,7 +44,12 @@ def test_sections_numbers_levels_and_paths(paper) -> None:
 def test_headless_div_continues_previous_section(paper) -> None:
     method = paper.sections[1]
     texts = [p.sentences[0].text for p in method.paragraphs]
-    assert texts == ["We define a merge.", "f(x) = x + 1", "Continued after a figure."]
+    assert texts == [
+        "We define a merge.",
+        "f(x) = x + 1",
+        "Continued after a figure.",
+        "Text after a mislabelled formula fragment.",  # fragment "heading" ignored
+    ]
 
 
 def test_formula_kept_in_reading_order_without_label(paper) -> None:

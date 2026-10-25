@@ -23,6 +23,9 @@
       <div>
         <p coords="2,50,300,400,40"><s>Continued after a figure.</s></p>
       </div>
+      <div><head>←h m ).</head>
+        <p><s>Text after a mislabelled formula fragment.</s></p>
+      </div>
       <div><head n="2.1">Merge rules</head>
         <p><s>Rules are learned.</s></p>
         <list><item>First item.</item></list>

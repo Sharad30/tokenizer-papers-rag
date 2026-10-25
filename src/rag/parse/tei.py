@@ -40,6 +40,10 @@ SKIPPED_BACK_DIVS = {"references", "acknowledgement", "availability", "funding"}
 ARXIV_PREFIX = re.compile(r"^arxiv:\s*", re.IGNORECASE)
 LABEL_TAIL = re.compile(r"\s*[:.]\s*$")  # "Table 1 :" -> "Table 1"
 WHITESPACE = re.compile(r"\s+")
+LETTER = re.compile(r"[^\W\d_]")
+# CRF GROBID sometimes labels a formula fragment as a heading ("←h m )." in
+# the BPE paper). Fewer letters than this: not a heading.
+MIN_HEADING_LETTERS = 3
 
 
 def parse_tei(tei: bytes, record_id: str, title: str) -> StructuredPaper:
@@ -87,9 +91,10 @@ def _sections(divs: list[ET.Element], formulas: list[Formula]) -> list[Section]:
     for div in divs:
         head = div.find("tei:head", NS)
         paragraphs = list(_div_paragraphs(div, formulas))
-        if head is None:
-            # GROBID starts a new headless div after a figure or page break;
-            # its text continues the previous section.
+        if head is None or len(LETTER.findall(_text(head))) < MIN_HEADING_LETTERS:
+            # GROBID starts a new headless div after a figure or page break,
+            # and mislabels some fragments as headings; both continue the
+            # previous section.
             if sections:
                 sections[-1].paragraphs.extend(paragraphs)
                 continue
