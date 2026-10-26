@@ -50,3 +50,21 @@ def test_save_and_load(
 
 def test_model_slug() -> None:
     assert model_slug("BAAI/bge-small-en-v1.5") == "bge-small-en-v1.5"
+
+
+def test_encoder_tries_the_local_cache_first(dense_config: DenseConfig, monkeypatch) -> None:
+    import sentence_transformers
+
+    from rag.retrieve.dense import SentenceTransformerEncoder
+
+    calls: list[bool] = []
+
+    class FakeST:
+        def __init__(self, name, device, local_files_only=False) -> None:
+            calls.append(local_files_only)
+            if local_files_only:
+                raise OSError("not cached")
+
+    monkeypatch.setattr(sentence_transformers, "SentenceTransformer", FakeST)
+    SentenceTransformerEncoder(dense_config)
+    assert calls == [True, False]  # cache miss, then one download

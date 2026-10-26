@@ -35,7 +35,14 @@ class SentenceTransformerEncoder:
 
         self._config = config
         self._show_progress = show_progress
-        self._model = SentenceTransformer(config.model, device=config.device)
+        try:
+            # The cached copy first: otherwise every load asks the HF Hub for
+            # metadata, an external call per `rag inspect query` or chat start.
+            self._model = SentenceTransformer(
+                config.model, device=config.device, local_files_only=True
+            )
+        except OSError:  # not downloaded yet: fetch it once
+            self._model = SentenceTransformer(config.model, device=config.device)
 
     def encode_documents(self, texts: list[str]) -> np.ndarray:
         # No prompt: bge's instruction is for queries only (model card).
