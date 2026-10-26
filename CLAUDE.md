@@ -134,7 +134,7 @@ Update at the end of each phase.
 - [x] Phase 0: Scaffold (2026-10-16; Sharad's "You do" tasks still open)
 - [x] Phase 1: Corpus collection (2026-10-23; audit labels and other "You do" tasks still open)
 - [x] Phase 2: Parse and chunk (2026-10-25; Sharad's inspection and chunk-size tasks still open)
-- [ ] Phase 3: Evaluation set
+- [x] Phase 3: Evaluation set (2026-10-26; tooling only: Sharad's questions pending)
 - [ ] Phase 4: Baseline retrieval + eval harness
 - [ ] Phase 5: Versions and near-duplicates
 - [ ] Phase 6: Embedding comparison + hybrid
@@ -144,12 +144,14 @@ Update at the end of each phase.
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: 3 (not started). Notes for the next session:
-- Phase 2 built `rag parse` (grobid, structure, chunk, mark, all) and `rag inspect paper`. First full run: 1,781 of 1,979 accepted papers indexed (197 no PDF, 1 scanned), 93,031 chunks in `data/parsed/chunks/chunks.jsonl`. See `notes/phase-2-parse.md`.
-- GROBID: `make grobid-up` (Docker Desktop must be running; image `grobid/grobid:0.9.1-crf` from config). TEI files in `data/parsed/tei/` are the cache, so reruns only re-send failures.
+Current phase: 4 (not started). Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then 5 and 6. All "You do" inspections and the eval questions come after the chat prototype works; don't block on them. Notes for the next session:
+- Phase 3 built `rag eval find` (unranked grep over chunk text) and `rag eval validate` (schema, indexed papers, span -> chunk mapping, conversations, mix). `eval/questions.jsonl` doesn't exist yet: Sharad writes it (`eval/README.md`). `rag eval run` is the Phase 4 stub.
+- Phase 4 harness must score Recall@5 through `rag.eval.spans.map_span` (spans mapped at scoring time, D-022), and handle an empty or missing question file gracefully until Sharad's questions exist.
+- Phase 2 outputs: `rag parse` and `rag inspect paper`; 1,781 of 1,979 accepted papers indexed, 93,031 chunks in `data/parsed/chunks/chunks.jsonl`. See `notes/phase-2-parse.md`.
 - Chunks: bge-small tokenizer, target 300 / max 448 / overlap 40; header stored separately (`Chunk.header`) and must be prepended at embedding time in Phase 4. References are in `data/parsed/papers/references.jsonl`, never chunked.
+- GROBID is only needed for `rag parse grobid`/`all` (`make grobid-up`, Docker Desktop running). `structure`, `chunk`, `inspect` and `eval` work without it.
 - `rag parse mark` writes `included_in_index` into the manifest; rerun it after `rag collect manifest`. It skips after a `--limit` run.
-- D-013 to D-021 are `proposed`. PyMuPDF is pinned `<2` (2.0 pulls in an ONNX layout stack).
-- Sharad's open "You do" items: Phase 2 inspection of 5 papers and the chunk-size comparison (journal skeletons added); Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
-- Chunks include linked copies and kept v1s on purpose; Phase 5 dedups.
+- D-013 to D-025 are `proposed`. PyMuPDF is pinned `<2`.
+- Sharad's open "You do" items: Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
+- Chunks include linked copies and kept v1s on purpose; Phase 5 dedups (the BPE definition sentence appears in 12 other records).
 - Typer 0.27 vendors Click privately (`typer._click`): don't `import click`. Local uv is 0.11.7.
