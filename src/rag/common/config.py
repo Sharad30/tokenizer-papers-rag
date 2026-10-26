@@ -12,6 +12,7 @@ from typing import Literal
 import yaml
 from pydantic import ValidationError
 
+from rag.chat.config import ChatConfig
 from rag.collect.config import CollectConfig
 from rag.common.schemas import StrictModel
 from rag.eval.config import EvalConfig
@@ -37,6 +38,8 @@ class PathsConfig(StrictModel):
     eval: Path
     results: Path
     figures: Path
+    chat: Path
+    prompts: Path
 
     def resolved_against(self, base: Path) -> "PathsConfig":
         # Resolving against the config file (not the current directory) means
@@ -64,6 +67,7 @@ class Config(StrictModel):
     eval: EvalConfig
     index: IndexConfig
     retrieve: RetrieveConfig
+    chat: ChatConfig
     # TODO(sharad): Phase 0 "You do": add one config field of your own here
     # (and to config.yaml), then use it in the `rag collect` stub in
     # src/rag/collect/cli.py.

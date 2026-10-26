@@ -8,6 +8,8 @@ paths:
   eval: out/eval
   results: out/results
   figures: out/figures
+  chat: out/chat
+  prompts: out/prompts
 logging:
   level: DEBUG
 corpus:
@@ -114,3 +116,30 @@ retrieve:
   default_k: 3
   candidates: 5
   rrf_k: 60
+chat:
+  provider: ollama
+  ollama:
+    url: http://ollama.test
+    model: test-model
+    think: false
+    temperature: 0
+    num_ctx: 2048
+    timeout_s: 5
+  anthropic:
+    model: claude-test
+    api_key_env: TEST_ANTHROPIC_KEY
+    timeout_s: 5
+  max_answer_tokens: 64
+  prompts:
+    answer: answer_system.md
+    rewrite: rewrite_system.md
+  rewrite:
+    enabled: true
+    history_turns: 2
+    max_tokens: 20
+  retrieval:
+    mode: hybrid
+    k: 3
+  abstain:
+    min_dense_cosine: 0.2
+    not_supported_token: NOT_SUPPORTED
