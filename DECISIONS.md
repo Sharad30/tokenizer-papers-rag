@@ -353,3 +353,77 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: Phase 8 failure analysis needs finer tags.
+
+## D-026: BM25 with bm25s, our own tokeniser and our own top-k
+- Date / Phase: 2026-10-26 / Phase 4
+- Status: proposed
+- Options considered:
+  1. bm25s 0.3 (numpy core) fed pre-tokenised text; scores from `get_scores` for every chunk, ranked by our stable sort. Pros: fast sparse scoring at 93k chunks; tokenisation and tie-breaking stay in our code. Cons: one dependency.
+  2. rank_bm25. Pros: tiny. Cons: pure Python loops, slow at 93k; unmaintained.
+  3. From scratch. Pros: everything visible. Cons: more code to get right; the Phase 4 probe already computes BM25 by hand against the library.
+- Choice: 1, `method=lucene`, k1 1.5, b 0.75 (library defaults, IR-book range).
+- Why: bm25s doesn't document tie order, so top-k is ours: ties broken by corpus position, deterministic.
+- Evidence: `probes/phase-4-bm25-rrf.py` reproduces its scores by hand.
+- Tuned on eval set?: no
+- Revisit if: the k1/b sweep on the eval set (Phase 6) says so; say so if tuned.
+
+## D-027: BM25 tokenisation keeps compounds and also indexes their parts
+- Date / Phase: 2026-10-26 / Phase 4
+- Status: proposed
+- Context: the domain's key terms are compounds and alphanumerics: SentencePiece, ByT5, GPT-2, BPE-dropout, byte-level.
+- Options considered:
+  1. Lowercase; a token keeps word-internal `-` `.` `_`; compounds also emit their parts (`byte-level` -> `byte-level`, `byte`, `level`); English stopwords; no stemming. Pros: "gpt-2" stays one term and "byte level" still matches. Cons: parts slightly inflate term counts.
+  2. bm25s's default regex (`\b\w\w+\b`). Cons: drops one-character tokens and splits `gpt-2` into `gpt` + nothing.
+  3. Add Snowball stemming. Pros: tokenizer/tokenizers match. Cons: "tokenization" and "token" collapse, merging distinct concepts in exactly this corpus.
+- Choice: 1. Stemming is a later ablation.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: plural/inflection misses show up in BM25 failures.
+
+## D-028: Exact dense search with numpy
+- Date / Phase: 2026-10-26 / Phase 4
+- Status: proposed
+- Options considered:
+  1. Normalised float32 matrix, scores = E @ q, stable argsort. Pros: exact; 93k x 384 = 143 MB; milliseconds per query. Cons: none at this scale.
+  2. FAISS IndexFlatIP. Pros: same results, faster at millions. Cons: extra dependency.
+  3. HNSW or IVF. Cons: approximate; recall loss for no gain at 93k.
+- Choice: 1.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: the corpus grows past a few million chunks.
+
+## D-029: The "Title > Section" header goes into both indexes
+- Date / Phase: 2026-10-26 / Phase 4
+- Status: proposed
+- Context: Phase 2 stores the header apart from the chunk text (D-016) so this can be switched.
+- Options considered:
+  1. Prepend for dense (`header + "\n" + text`) and BM25. Pros: section and title words disambiguate short chunks. Cons: every chunk of a paper shares title words, which can pull in the wrong chunk of the right paper.
+  2. Body only. Pros: chunks compete on content. Cons: a chunk saying "this method" loses what it is about.
+- Choice: 1, behind `index.bm25.include_header` and `index.dense.prepend_header` for the Phase 6 ablation.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: the ablation favours body only.
+
+## D-030: Hybrid retrieval by Reciprocal Rank Fusion
+- Date / Phase: 2026-10-26 / Phase 4
+- Status: proposed
+- Options considered:
+  1. RRF: score = sum over retrievers of 1/(k + rank), k = 60, over each retriever's top 100. Pros: uses ranks only, so BM25's unbounded scores and cosines need no normalisation; no weight to tune. Cons: throws away score gaps.
+  2. Weighted sum of min-max normalised scores. Cons: normalisation varies per query; the weight is one more tunable.
+  3. CombSUM / CombMNZ. Cons: same normalisation problem.
+- Choice: 1. Ties broken by best single rank, then corpus position.
+- Evidence: Cormack et al. 2009; probe toy example (k = 1 vs 60).
+- Tuned on eval set?: no
+- Revisit if: Phase 6 shows one retriever consistently dominating.
+
+## D-031: Retrieval metric definitions
+- Date / Phase: 2026-10-26 / Phase 4
+- Status: proposed
+- Options considered:
+  1. Span Recall@5 (fraction of gold spans with a containing chunk in the top 5), paper Recall@5, MRR@10 (first chunk containing any gold span), dup@5 by trustworthy identity (shared arXiv id, DOI, S2 id, ACL id or `derived_from`), 95% bootstrap CIs and paired bootstrap differences. Pros: robust to re-chunking (D-022); duplicates judged only by identity we trust. Cons: binary relevance.
+  2. Chunk-id recall. Cons: breaks on re-chunking.
+  3. nDCG. Cons: needs graded judgments we don't have.
+- Choice: 1. Follow-ups scored on the raw question and the oracle rewrite (system rewrite from Phase 7). Unanswerables are not scored for recall; their top cosine is recorded for the Phase 7 gate.
+- Evidence: none yet: definitions.
+- Tuned on eval set?: no
+- Revisit if: Phase 5 adds labelled restatement pairs to dup@5.
