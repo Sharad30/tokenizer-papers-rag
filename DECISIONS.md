@@ -303,3 +303,53 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: later stages need finer status (e.g. dedup exclusions in Phase 5).
+
+## D-022: Eval gold is a verbatim span in a named paper, mapped to chunks at scoring time
+- Date / Phase: 2026-10-26 / Phase 3
+- Status: proposed
+- Context: Recall@5 needs to know which chunks answer a question, and chunking will change (Phase 2 chunk-size task, Phase 6 models with other tokenizers).
+- Options considered:
+  1. `{record_id, section, span}` with the span copied verbatim; chunks found by matching when scoring. Pros: survives any re-chunking; readable. Cons: matching rules needed (D-023).
+  2. Gold chunk ids. Pros: trivial scoring. Cons: break on every re-chunk; silently score against stale ids.
+  3. Section-level gold. Pros: easy to label. Cons: too coarse; a 4-chunk section makes Recall@5 easy and hides retrieval differences.
+- Choice: 1. The mapping is never stored, so it can't go stale. `record_id` is the manifest id until Phase 5 adds work ids.
+- Why: chunks never split a sentence (D-017) except over-long ones, so a span within one sentence always lands whole in one chunk.
+- Evidence: `probes/phase-3-span-robustness.py`: chunk ids change across chunk sizes, spans still map.
+- Tuned on eval set?: no
+- Revisit if: many spans straddle chunk boundaries.
+
+## D-023: Span matching is a normalised substring within the gold paper
+- Date / Phase: 2026-10-26 / Phase 3
+- Status: proposed
+- Options considered:
+  1. Substring after normalisation (NFKC, casefold, unified quotes/dashes, table pipes dropped, whitespace collapsed). Pros: exact, no threshold. Cons: a span typed from the PDF can miss on hyphenation or ligatures.
+  2. Fuzzy ratio ≥ a threshold. Pros: tolerant. Cons: one more tunable; can match the wrong passage on short spans.
+  3. Token-overlap containment. Pros: tolerates splits. Cons: loose on short spans.
+- Choice: 1, with spans copied from chunk text via `rag eval find`. A difflib suggestion is shown only to help repair an unmapped span; it never counts as a match.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: the validator reports many unmapped spans that are clearly present.
+
+## D-024: The span finder is unranked grep over chunk text
+- Date / Phase: 2026-10-26 / Phase 3
+- Status: proposed
+- Context: finding spans for already-written questions must not bias gold towards one retriever (pooling bias).
+- Options considered:
+  1. Normalised substring / all-words search over chunk text, hits in corpus order. Pros: no ranking, so no retriever preference; same text the validator matches. Cons: no help with paraphrased searches.
+  2. Search structured papers. Pros: also finds text the chunker replaced (long formulas). Cons: finder and validator could disagree.
+  3. Use the Phase 4 retriever. Cons: pooling bias; it doesn't exist yet.
+- Choice: 1.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: never for ranking; possibly add structured-paper search as a fallback.
+
+## D-025: Question types and validation rules
+- Date / Phase: 2026-10-26 / Phase 3
+- Status: proposed
+- Options considered:
+  1. Types `lookup | multi_paper | followup | unanswerable`; a conversation's first turn is typed by what it asks; followups need an oracle rewrite; unanswerables carry a kind (not covered, false premise, outside corpus, nonexistent detail). Pros: the PLAN mix is checkable by counting types. Cons: a followup that is also multi-paper counts once.
+  2. A `conversational` flag on any type. Pros: simpler schema. Cons: the mix check gets fuzzier.
+- Choice: 1. Minimums from PLAN in `eval.mix_min`. Rules live in the pydantic models, cross-question checks in `rag eval validate`.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: Phase 8 failure analysis needs finer tags.
