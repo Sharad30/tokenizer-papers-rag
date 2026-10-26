@@ -138,13 +138,18 @@ Update at the end of each phase.
 - [x] Phase 4: Baseline retrieval + eval harness (2026-10-26; baseline numbers wait for Sharad's questions)
 - [ ] Phase 5: Versions and near-duplicates
 - [ ] Phase 6: Embedding comparison + hybrid
-- [ ] Phase 7: Grounded multi-turn chat
+- [x] Phase 7: Grounded multi-turn chat (2026-10-26; local qwen3:8b default; Sharad's prompt and year-filter tasks open)
 - [ ] Phase 8: Answer evaluation + failure analysis
 - [ ] Phase 9: Deep dives
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: 7 (not started). Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then 5 and 6. All "You do" inspections and the eval questions come after the chat prototype works; don't block on them. Notes for the next session:
+Current phase: none in progress. Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then Sharad inspects each stage's quality one by one (and writes the eval questions), then Phases 5 and 6. The chat prototype now works; ask Sharad before starting Phase 5. Phase 8 needs his eval questions. Notes for the next session:
+- Phase 7 built `rag chat` (`src/rag/chat/`): rewrite -> hybrid search (k 6) -> retrieval gate (best dense cosine < 0.70) -> context [C1..] -> generate -> NOT_SUPPORTED gate -> citations renumbered by code. Prompts are files in `prompts/`. Transcripts in `data/chat/*.jsonl` (gitignored). See `notes/phase-7-chat.md`, `docs/phase7-demo.md`.
+- LLM: Ollama `qwen3:8b` by default (`ollama pull qwen3:8b` done; ~7-17 s per answer). `--provider anthropic` needs ANTHROPIC_API_KEY in .env (`claude-haiku-5-5`). The anthropic SDK uses its own httpx2: respx can't mock it; tests inject a fake client.
+- The gate threshold 0.70 comes from `probes/phase-7-gate.py` (probe queries, not gold). A new embedding model (Phase 6) needs the probe rerun.
+- `make smoke` now runs in `.smoke/` (a config copy; data/raw symlinked) and needs GROBID and network.
+- Duplicates show in chat sources (arXiv + ACL copies cited together): Phase 5's target.
 - Phase 4 built `rag index bm25|dense|all` (data/index/bm25, data/index/dense/bge-small-en-v1.5), the Retriever (`rag.retrieve.retriever.Retriever.load(config, {"hybrid"})`, `.retrieve(query, k, mode, allow)`), `rag inspect query`, `rag eval run --name`, and `rag report`. See `notes/phase-4-retrieve.md`.
 - Phase 7 chat should use `Retriever.retrieve(..., allow=...)` (the year filter hook is Sharad's task) and the top dense cosine (`Hit.scores["dense"]`) for the abstention gate, never RRF scores.
 - Full dense rebuild takes 45 min on CPU. The Retriever refuses a stale index (chunks sha256 or settings changed). Build from a clean tree (or a clean worktree with `--config`) so stats carry a clean commit.
@@ -154,7 +159,7 @@ Current phase: 7 (not started). Order changed by Sharad on 2026-10-26: Phase 3 t
 - Chunks: bge-small tokenizer, target 300 / max 448 / overlap 40; header stored separately (`Chunk.header`) and must be prepended at embedding time in Phase 4. References are in `data/parsed/papers/references.jsonl`, never chunked.
 - GROBID is only needed for `rag parse grobid`/`all` (`make grobid-up`, Docker Desktop running). `structure`, `chunk`, `inspect` and `eval` work without it.
 - `rag parse mark` writes `included_in_index` into the manifest; rerun it after `rag collect manifest`. It skips after a `--limit` run.
-- D-013 to D-031 are `proposed`. PyMuPDF is pinned `<2`.
-- Sharad's open "You do" items: Phase 4 Recall@10 (`TODO(sharad)` in `eval/metrics.py`), hand-computed Recall@5/MRR for 2 questions, Phase 5/6 journal predictions; Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
+- D-013 to D-036 are `proposed`. PyMuPDF is pinned `<2`.
+- Sharad's open "You do" items: Phase 7 system-prompt change (journal skeleton) and `--year-min` filter (`TODO(sharad)` in `chat/cli.py`); Phase 4 Recall@10 (`TODO(sharad)` in `eval/metrics.py`), hand-computed Recall@5/MRR for 2 questions, Phase 5/6 journal predictions; Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
 - Chunks include linked copies and kept v1s on purpose; Phase 5 dedups (the BPE definition sentence appears in 12 other records).
 - Typer 0.27 vendors Click privately (`typer._click`): don't `import click`. Local uv is 0.11.7.
