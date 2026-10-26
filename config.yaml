@@ -231,6 +231,7 @@ chat:
   rewrite:
     enabled: true
     history_turns: 3          # exchanges the rewriter sees (D-033)
+    max_answer_chars: 600     # earlier answers, truncated, as rewrite context
     max_tokens: 100
   retrieval:
     mode: hybrid

@@ -136,6 +136,7 @@ chat:
   rewrite:
     enabled: true
     history_turns: 2
+    max_answer_chars: 100
     max_tokens: 20
   retrieval:
     mode: hybrid

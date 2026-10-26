@@ -35,6 +35,9 @@ class PromptsConfig(StrictModel):
 class RewriteConfig(StrictModel):
     enabled: bool
     history_turns: int = Field(ge=1)  # exchanges the rewriter sees (D-033)
+    # Earlier answers are cut to this many characters: the rewriter needs
+    # their topic, not their full text, and a local model is slow on long prompts.
+    max_answer_chars: int = Field(ge=1)
     max_tokens: int = Field(ge=8)
 
 
