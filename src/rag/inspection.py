@@ -41,7 +41,21 @@ def work(
 def query(
     ctx: typer.Context,
     text: Annotated[str, typer.Argument(help="Query text")],
+    k: Annotated[
+        int | None, typer.Option("-k", min=1, help="Results (default: retrieve.default_k)")
+    ] = None,
+    mode: Annotated[
+        str | None, typer.Option(help="bm25 | dense | hybrid (default: retrieve.default_mode)")
+    ] = None,
 ) -> None:
-    """Rank chunks for a query with BM25, dense, fused and rerank scores side by side."""
+    """Rank chunks for a query with BM25, dense and fused scores side by side."""
+    from rag.retrieve.retriever import Retriever
+    from rag.retrieve.show import render_hits
+
     config = get_config(ctx)
-    print_stub(f"inspect query {text!r}", "4", str(config.paths.index), "terminal", None)
+    mode = mode or config.retrieve.default_mode
+    if mode not in ("bm25", "dense", "hybrid"):
+        raise typer.BadParameter(f"unknown mode {mode!r}", param_hint="--mode")
+    # Load both indexes even for one mode, so the other's rank shows alongside.
+    retriever = Retriever.load(config, {"hybrid"})
+    typer.echo(render_hits(text, mode, retriever.retrieve(text, k=k, mode=mode)))
