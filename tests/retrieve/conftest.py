@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from rag.index.config import Bm25Config, DenseConfig
@@ -38,3 +39,35 @@ def dense_config() -> DenseConfig:
         batch_size=2,
         device="cpu",
     )
+
+
+class FakeEncoder:
+    """Bag-of-words vectors over a fixed vocabulary, normalised: enough to rank.
+
+    Records what it was asked to encode, so tests can check prompts and headers.
+    """
+
+    VOCAB = ["merge", "byte", "level", "unigram", "query:", "paper"]
+
+    def __init__(self, prompt: str = "query: ") -> None:
+        self.prompt = prompt
+        self.seen_documents: list[str] = []
+        self.seen_queries: list[str] = []
+
+    def _vector(self, text: str) -> np.ndarray:
+        words = text.lower().split()
+        v = np.array([words.count(w) for w in self.VOCAB], dtype=np.float32) + 1e-3
+        return v / np.linalg.norm(v)
+
+    def encode_documents(self, texts: list[str]) -> np.ndarray:
+        self.seen_documents.extend(texts)
+        return np.stack([self._vector(t) for t in texts])
+
+    def encode_query(self, text: str) -> np.ndarray:
+        self.seen_queries.append(self.prompt + text)
+        return self._vector(self.prompt + text)
+
+
+@pytest.fixture
+def fake_encoder() -> FakeEncoder:
+    return FakeEncoder()
