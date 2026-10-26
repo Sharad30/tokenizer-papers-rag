@@ -40,6 +40,7 @@ validated version). Use `--config PATH` or `RAG_CONFIG` to point at another conf
 
 ## Repository map
 
+- `docs/architecture.md`: block diagram of the whole system and where to look for each block
 - `src/rag/`: the package, one folder per stage plus `common/`
 - `tests/`: pytest suite (`make test`)
 - `DECISIONS.md`: every significant choice with alternatives and evidence
