@@ -427,3 +427,66 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: definitions.
 - Tuned on eval set?: no
 - Revisit if: Phase 5 adds labelled restatement pairs to dup@5.
+
+## D-032: LLM behind one interface: Ollama qwen3:8b by default, Anthropic optional
+- Date / Phase: 2026-10-26 / Phase 7
+- Status: proposed
+- Context: the chat needs a generator and a query rewriter. No Anthropic key is set; Ollama 0.33 runs locally on a 16 GB Apple Silicon Mac.
+- Options considered:
+  1. Both clients, Ollama default (Sharad's choice). Pros: free, offline, chunks never leave the machine; switch to Claude in config when a key exists. Cons: an 8B model follows "cite only from context" less reliably; several seconds per answer.
+  2. Anthropic only (`claude-haiku-5-5`). Pros: best instruction following and abstention. Cons: needs a key; chunk text is sent to the API; a few cents per conversation.
+  3. An OpenAI-compatible free tier. Cons: rate limits and terms vary.
+- Choice: 1. Local model `qwen3:8b` (5.2 GB, 40K context), `think: false`, temperature 0. `qwen3.5:9b` is newer but 6.6 GB and its no-think switch is undocumented.
+- Evidence: none yet: judgement call; the demo transcript shows the local model's behaviour.
+- Tuned on eval set?: no
+- Revisit if: Phase 8's groundedness numbers show the local model failing to cite or abstain.
+
+## D-033: Follow-ups are rewritten into a standalone query
+- Date / Phase: 2026-10-26 / Phase 7
+- Status: proposed
+- Options considered:
+  1. LLM "condense question" rewrite on turn 2 onwards, from the last 3 exchanges. Pros: retrieval sees one focused query; the rewrite is logged and scorable (eval "system" variant). Cons: one extra LLM call; a bad rewrite derails retrieval.
+  2. Embed the whole history. Cons: drifts to earlier topics; BM25 gets swamped by old terms.
+  3. HyDE: embed a hypothetical answer. Cons: invents content; PLAN's exploration, deferred.
+- Choice: 1. An empty or failed rewrite falls back to the raw message and is flagged.
+- Evidence: none yet; Phase 4 harness scores raw vs oracle vs system rewrites once questions exist.
+- Tuned on eval set?: no
+- Revisit if: system rewrites score well below the oracle.
+
+## D-034: Context is the top 6 hybrid chunks, best first, and no chat history
+- Date / Phase: 2026-10-26 / Phase 7
+- Status: proposed
+- Options considered:
+  1. Top 6 by RRF, best first, each labelled `[Cn] Title (Year) > Section, p.N`; the generator gets the standalone question and the context only. Pros: grounding comes from the context alone; small prompt for a local model. Cons: evidence ranked 7+ is lost.
+  2. More chunks (10-20). Pros: recall. Cons: "lost in the middle"; slower local generation.
+  3. Best chunks at both ends. Cons: a Phase 9 experiment, not a default.
+- Choice: 1. History reaches the answer only through the rewrite (D-033).
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: answers miss evidence that retrieval ranked 7-10.
+
+## D-035: Citations are chunk ids mapped by code
+- Date / Phase: 2026-10-26 / Phase 7
+- Status: proposed
+- Options considered:
+  1. The model writes `[C3]`; code renumbers, removes ids not in the context (and flags them), and builds every source line from chunk and manifest metadata. Pros: a citation can't name a paper that wasn't retrieved; titles and years are always right. Cons: the model can still cite the wrong chunk for a claim (Phase 8 measures it).
+  2. The model writes titles. Cons: hallucinated or garbled references.
+  3. Quote-based citations. Cons: harder for a small model; verification needs fuzzy matching.
+- Choice: 1. Sentences with no citation are counted for Phase 8.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: wrong-chunk citations are common in Phase 8.
+
+## D-036: Two-layer abstention
+- Date / Phase: 2026-10-26 / Phase 7
+- Status: proposed
+- Context: the system must say plainly when the corpus doesn't support an answer.
+- Options considered:
+  1. Gate 1: if the top dense cosine over all chunks is below a threshold, abstain without calling the LLM. Gate 2: the prompt asks for exactly `NOT_SUPPORTED` when the context doesn't support an answer. Pros: off-topic questions cost nothing; near-topic ones still have a path. Cons: a threshold to choose.
+  2. The model alone. Cons: small models answer from loosely related text.
+  3. Threshold RRF scores. Cons: rank-based; the best chunk of any query scores the same.
+  4. A reranker score. Cons: Phase 6.
+- Choice: 1. The threshold comes from the Phase 7 probe's own queries (not gold), not from the eval set.
+- Evidence: `probes/phase-7-gate.py`.
+- Tuned on eval set?: no
+- Revisit if: Phase 8 abstention precision/recall says so; if then tuned on the eval set, say so here.
