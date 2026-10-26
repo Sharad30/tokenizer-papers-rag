@@ -110,3 +110,18 @@ Phase: 2  ·  Type: prediction
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-26: Which question type will be hardest for retrieval
+Phase: 3  ·  Type: prediction
+
+### Prediction (Sharad):
+(lookup, multi_paper, followup, unanswerable: which scores worst at Recall@5 / abstention, and by how much? Write before the first `rag eval run` in Phase 4)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(per-type numbers from the Phase 4 results file, commit)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
