@@ -17,7 +17,7 @@ from rag.common.cli import AppState, get_config
 from rag.common.config import DEFAULT_CONFIG_PATH
 from rag.dedup.cli import dedup
 from rag.eval import cli as eval_cli
-from rag.index.cli import index
+from rag.index import cli as index_cli
 from rag.parse import cli as parse_cli
 from rag.report.cli import report
 
@@ -54,7 +54,7 @@ def config_show(ctx: typer.Context) -> None:
 app.add_typer(collect_cli.app, name="collect")
 app.add_typer(parse_cli.app, name="parse")
 app.command()(dedup)
-app.command()(index)
+app.add_typer(index_cli.app, name="index")
 app.add_typer(eval_cli.app, name="eval")
 app.command()(report)
 app.command()(chat)

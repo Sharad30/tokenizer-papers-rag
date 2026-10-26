@@ -33,7 +33,7 @@ smoke:  ## Run the whole pipeline on a tiny --limit
 	$(RAG) collect all --limit $(SMOKE_LIMIT)
 	$(RAG) parse all --limit $(SMOKE_LIMIT)
 	$(RAG) dedup --limit $(SMOKE_LIMIT)
-	$(RAG) index --limit $(SMOKE_LIMIT)
+	$(RAG) index all --limit $(SMOKE_LIMIT)
 	$(RAG) eval validate
 	$(RAG) eval run --limit $(SMOKE_LIMIT)
 	$(RAG) report smoke
