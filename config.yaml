@@ -166,3 +166,17 @@ parse:
     formula_max_chars: 120
     table_max_rows_per_chunk: 25
     captions: own_chunk
+
+eval:
+  questions_file: questions.jsonl   # Sharad's questions, under paths.eval
+  # PLAN's mix (about 36 questions), as minimums per type (D-025).
+  mix_min:
+    lookup: 12
+    multi_paper: 8
+    followup: 8
+    unanswerable: 6
+  duplicate_sensitive_min: 3
+  conversations_min: 3
+  max_span_words: 60        # warn above: long spans risk crossing a chunk boundary
+  find:
+    max_hits: 30

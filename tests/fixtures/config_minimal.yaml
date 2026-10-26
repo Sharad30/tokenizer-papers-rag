@@ -77,3 +77,15 @@ parse:
     formula_max_chars: 20
     table_max_rows_per_chunk: 2
     captions: own_chunk
+eval:
+  questions_file: questions.jsonl
+  mix_min:
+    lookup: 1
+    multi_paper: 1
+    followup: 1
+    unanswerable: 1
+  duplicate_sensitive_min: 1
+  conversations_min: 1
+  max_span_words: 12
+  find:
+    max_hits: 3
