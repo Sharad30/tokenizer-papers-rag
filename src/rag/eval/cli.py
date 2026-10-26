@@ -76,6 +76,10 @@ def run(
         Path | None, typer.Option(help="Questions file (default: eval.questions_file)")
     ] = None,
     limit: LimitOption = None,
+    rewrite: Annotated[
+        bool,
+        typer.Option("--rewrite", help="Also score follow-ups rewritten by the chat's LLM"),
+    ] = False,
 ) -> None:
     """Score retrieval modes on the eval set; write a results file for `rag report`."""
     from rag.eval.run import run_eval
@@ -84,5 +88,13 @@ def run(
     unknown = set(chosen) - {"bm25", "dense", "hybrid"}
     if unknown or not chosen:
         raise typer.BadParameter(f"unknown modes: {sorted(unknown)}", param_hint="--modes")
-    out = run_eval(get_config(ctx), name, chosen, file, limit)
+    config = get_config(ctx)
+    rewriter = None
+    if rewrite:
+        from rag.chat.llm import make_llm
+        from rag.chat.prompts import load_prompt
+
+        prompt = load_prompt(config.paths.prompts, config.chat.prompts.rewrite)
+        rewriter = (make_llm(config.chat), prompt)
+    out = run_eval(config, name, chosen, file, limit, rewriter=rewriter)
     typer.echo(f"Wrote {out}" if out else "No questions yet: nothing scored, nothing written.")

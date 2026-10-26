@@ -44,4 +44,6 @@ class RunResult(StrictModel):
     questions_sha256: str
     n_questions: int
     index_meta: dict[str, IndexMeta]
+    # With --rewrite: the model and prompt hash behind the follow-ups' "system" variant.
+    rewriter: dict[str, str] | None = None
     modes: dict[str, ModeResult]

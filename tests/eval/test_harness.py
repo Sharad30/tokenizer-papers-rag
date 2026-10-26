@@ -162,3 +162,32 @@ def test_end_to_end_on_real_indexes(config, monkeypatch) -> None:
     assert set(result.modes) == {"bm25", "dense", "hybrid"}
     assert set(result.index_meta) == {"bm25", "dense"}
     assert out.name.endswith("-e2e.json")
+
+
+def test_system_rewrite_variant_is_scored_with_rewriter(config, tmp_path: Path) -> None:
+    from rag.chat.llm import ScriptedLLM
+    from rag.chat.prompts import load_prompt
+
+    (tmp_path / "rw.md").write_text("Rewrite.")
+    seen = []
+
+    def reply(system, messages):
+        seen.append(messages[0].content)
+        return "Is the BPE vocabulary joint across languages?"
+
+    out = run_eval(
+        config,
+        "t",
+        ["hybrid"],
+        FIXTURE,
+        retriever=FakeRetriever(),
+        rewriter=(ScriptedLLM(reply), load_prompt(tmp_path, "rw.md")),
+    )
+    result = RunResult.model_validate_json(out.read_text())
+    system = rows(result)["q2", "system"]
+    assert system.scored and system.query == "Is the BPE vocabulary joint across languages?"
+    assert system.metrics["recall@2"] == 1.0
+    assert result.rewriter["model"] == "scripted"
+    # The follow-up's history is its conversation's earlier question.
+    assert "User: How many merge operations are learned?" in seen[0]
+    assert "followup:system" in result.modes["hybrid"].aggregates

@@ -55,10 +55,15 @@ def resolve_gold(gold: Sequence[GoldSpan], texts: ChunkTexts, groups: dict[str, 
     return Gold(spans, {groups.get(g.record_id, g.record_id) for g in gold})
 
 
-def variants(q: Question) -> list[tuple[str, str | None]]:
-    """The queries a question is scored with. Follow-ups three ways (PLAN Phase 4)."""
+def variants(q: Question, rewrites: dict[str, str] | None = None) -> list[tuple[str, str | None]]:
+    """The queries a question is scored with. Follow-ups three ways (PLAN Phase 4).
+
+    "system" is the chat's own rewrite (Phase 7, `rag eval run --rewrite`);
+    without it the variant stays unscored.
+    """
     if q.type == QuestionType.FOLLOWUP:
-        return [("raw", q.question), ("oracle", q.oracle_rewrite), ("system", None)]
+        system = (rewrites or {}).get(q.id)
+        return [("raw", q.question), ("oracle", q.oracle_rewrite), ("system", system)]
     return [("raw", q.question)]
 
 
@@ -106,12 +111,13 @@ def run_mode(
     texts: ChunkTexts,
     groups: dict[str, str],
     config: EvalConfig,
+    rewrites: dict[str, str] | None = None,
 ) -> ModeResult:
     depth = max(config.recall_k, config.mrr_cutoff, config.dup_k)
     rows = []
     for q in questions:
         gold = resolve_gold(q.gold, texts, groups)
-        for variant, query in variants(q):
+        for variant, query in variants(q, rewrites):
             hits = retriever.retrieve(query, k=depth, mode=mode) if query else []
             rows.append(score_question(q, variant, query, hits, gold, groups, config))
     return ModeResult(aggregates=aggregate(rows, config), questions=rows)
