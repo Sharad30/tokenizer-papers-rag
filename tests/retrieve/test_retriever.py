@@ -97,3 +97,20 @@ def test_limited_index_covers_a_subset_and_warns(config, caplog) -> None:
         r = Retriever.load(config, {"bm25"})
     assert {c.record_id for c in r.chunks} == {"p:a"}
     assert "--limit 1" in caplog.text
+
+
+def test_search_reports_best_scores_over_all_chunks(built) -> None:
+    r = Retriever.load(built, {"hybrid"}, encoder=FakeEncoder())
+    result = r.search("unigram", k=1, mode="bm25")
+    assert [h.chunk.chunk_id for h in result.hits] == ["p:b#0000"]
+    # Dense's best is reported even in bm25 mode, and is the max over every chunk.
+    dense_all = r.dense.scores(FakeEncoder().encode_query("unigram"))
+    assert result.top_scores["dense"] == pytest.approx(float(dense_all.max()))
+    assert result.top_scores["bm25"] == pytest.approx(result.hits[0].scores["bm25"])
+
+
+def test_search_top_scores_respect_the_filter(built) -> None:
+    r = Retriever.load(built, {"hybrid"}, encoder=FakeEncoder())
+    full = r.search("unigram", mode="dense").top_scores["dense"]
+    filtered = r.search("unigram", mode="dense", allow=lambda c: c.record_id != "p:b")
+    assert filtered.top_scores["dense"] < full

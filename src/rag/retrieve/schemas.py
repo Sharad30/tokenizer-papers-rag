@@ -31,3 +31,10 @@ class Hit(StrictModel):
     # side by `rag inspect query`.
     ranks: dict[str, int] = {}
     scores: dict[str, float] = {}
+
+
+class Retrieval(StrictModel):
+    hits: list[Hit]
+    # Best score per retriever over every allowed chunk, not just the hits:
+    # the abstention gate needs "how close is anything in the corpus" (D-036).
+    top_scores: dict[str, float] = {}

@@ -20,7 +20,7 @@ from rag.retrieve.config import Mode, RetrieveConfig
 from rag.retrieve.dense import DenseIndex, Encoder, SentenceTransformerEncoder, model_slug
 from rag.retrieve.fusion import rrf
 from rag.retrieve.ranking import top_k
-from rag.retrieve.schemas import Hit, IndexMeta
+from rag.retrieve.schemas import Hit, IndexMeta, Retrieval
 
 log = logging.getLogger(__name__)
 
@@ -84,6 +84,16 @@ class Retriever:
         mode: Mode | None = None,
         allow: Callable[[Chunk], bool] | None = None,
     ) -> list[Hit]:
+        return self.search(query, k, mode, allow).hits
+
+    def search(
+        self,
+        query: str,
+        k: int | None = None,
+        mode: Mode | None = None,
+        allow: Callable[[Chunk], bool] | None = None,
+    ) -> Retrieval:
+        """Ranked hits plus each retriever's best score over all allowed chunks."""
         k = k or self.config.default_k
         mode = mode or self.config.default_mode
         if not NEEDS[mode] <= self._available():
@@ -104,9 +114,12 @@ class Retriever:
             ranked = rrf(lists, self.config.rrf_k)[:k]
         else:
             ranked = [(i, float(scores[mode][i])) for i in lists[mode][:k]]
-        return [
+        hits = [
             self._hit(i, rank, score, lists, scores) for rank, (i, score) in enumerate(ranked, 1)
         ]
+        # Each list is already sorted, so its first entry is that retriever's best.
+        top = {name: float(scores[name][ids[0]]) for name, ids in lists.items() if ids}
+        return Retrieval(hits=hits, top_scores=top)
 
     def _available(self) -> set[str]:
         have = set()
