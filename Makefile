@@ -36,7 +36,8 @@ smoke:  ## Run the whole pipeline on a tiny --limit
 	$(RAG) index all --limit $(SMOKE_LIMIT)
 	$(RAG) eval validate
 	$(RAG) eval run --name smoke --limit $(SMOKE_LIMIT)
-	$(RAG) report smoke
+	@f=$$(ls -t results/*-smoke.json 2>/dev/null | head -1); \
+	if [ -n "$$f" ]; then $(RAG) report $$f; else echo "report: no smoke results (no questions yet)"; fi
 
 # GROBID (Phase 2) runs in Docker. The image comes from config.yaml so the
 # version is pinned in one place.

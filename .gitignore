@@ -230,3 +230,7 @@ data/index/
 # The PyInstaller "MANIFEST" pattern above matches data/manifest/ on
 # case-insensitive filesystems (macOS); the manifest is committed.
 !data/manifest/
+
+# make smoke's eval runs: throwaway, never committed
+results/*-smoke.*
+docs/figures/*-smoke-metrics.*
