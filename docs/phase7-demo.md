@@ -5,7 +5,7 @@ local default model. It's a demonstration, not an evaluation: Phase 8 makes
 the assessed transcript.
 
 - Model: `qwen3:8b` via Ollama, temperature 0, thinking off
-- Commit `a484d6518935` · config hash `2282d2405e2d`
+- Commit `a484d6518935` (recorded as `-dirty` only because `data/chat/` itself was not yet gitignored; fixed in the next commit) · config hash `2282d2405e2d`
 - Prompts: `answer_system.md` `6078027685f9`, `rewrite_system.md` `473fb9158a51`
 - Retrieval: hybrid, 6 chunks of context; retrieval gate at dense cosine 0.70
 

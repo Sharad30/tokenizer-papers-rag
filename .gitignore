@@ -226,6 +226,7 @@ data/raw/
 data/parsed/
 data/works/
 data/index/
+data/chat/
 *.pdf
 # The PyInstaller "MANIFEST" pattern above matches data/manifest/ on
 # case-insensitive filesystems (macOS); the manifest is committed.
