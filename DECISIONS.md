@@ -423,7 +423,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   1. Span Recall@5 (fraction of gold spans with a containing chunk in the top 5), paper Recall@5, MRR@10 (first chunk containing any gold span), dup@5 by trustworthy identity (shared arXiv id, DOI, S2 id, ACL id or `derived_from`), 95% bootstrap CIs and paired bootstrap differences. Pros: robust to re-chunking (D-022); duplicates judged only by identity we trust. Cons: binary relevance.
   2. Chunk-id recall. Cons: breaks on re-chunking.
   3. nDCG. Cons: needs graded judgments we don't have.
-- Choice: 1. Follow-ups scored on the raw question and the oracle rewrite (system rewrite from Phase 7). Unanswerables are not scored for recall; their top cosine is recorded for the Phase 7 gate.
+- Choice: 1. A chunk of a linked copy of the gold paper (same identity group) that contains the span counts as a hit, and paper recall works on identity groups, so duplicates aren't scored as misses before Phase 5 merges them. Two chunks of one paper in the top 5 count as one redundant slot. Follow-ups scored on the raw question and the oracle rewrite (system rewrite from Phase 7). Unanswerables are not scored for recall; their top cosine is recorded for the Phase 7 gate.
 - Evidence: none yet: definitions.
 - Tuned on eval set?: no
 - Revisit if: Phase 5 adds labelled restatement pairs to dup@5.
