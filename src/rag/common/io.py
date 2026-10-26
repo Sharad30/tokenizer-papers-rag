@@ -5,6 +5,7 @@ stage killed halfway never leaves a truncated file that the next stage would
 read as if it were complete.
 """
 
+import hashlib
 import json
 import os
 import tempfile
@@ -61,3 +62,12 @@ def write_stats(out_dir: Path, stats: StageStats) -> Path:
     path = out_dir / STATS_FILENAME
     write_json(path, stats)
     return path
+
+
+def file_sha256(path: Path) -> str:
+    """Content hash, read in blocks so large files (chunks.jsonl) don't load at once."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()

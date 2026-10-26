@@ -89,3 +89,22 @@ eval:
   max_span_words: 12
   find:
     max_hits: 3
+index:
+  bm25:
+    method: lucene
+    k1: 1.5
+    b: 0.75
+    include_header: true
+    stopwords: en
+    split_compounds: true
+  dense:
+    model: test/fake
+    query_prompt: "query: "
+    prepend_header: true
+    batch_size: 2
+    device: cpu
+retrieve:
+  default_mode: hybrid
+  default_k: 3
+  candidates: 5
+  rrf_k: 60

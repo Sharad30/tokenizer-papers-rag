@@ -180,3 +180,24 @@ eval:
   max_span_words: 60        # warn above: long spans risk crossing a chunk boundary
   find:
     max_hits: 30
+
+index:
+  bm25:
+    method: lucene            # bm25s's Lucene variant (D-026)
+    k1: 1.5                   # library default; IR-book range 1.2-2.0
+    b: 0.75
+    include_header: true      # "Title > Section" indexed with the body (D-029)
+    stopwords: en
+    split_compounds: true     # "byte-level" also indexes "byte", "level" (D-027)
+  dense:
+    model: BAAI/bge-small-en-v1.5
+    query_prompt: "Represent this sentence for searching relevant passages: "  # model card; queries only
+    prepend_header: true      # embed "header\ntext" (D-029)
+    batch_size: 64
+    device: cpu
+
+retrieve:
+  default_mode: hybrid        # bm25 | dense | hybrid
+  default_k: 10
+  candidates: 100             # each retriever's depth into fusion (D-030)
+  rrf_k: 60                   # Cormack et al. 2009
