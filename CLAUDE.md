@@ -135,7 +135,7 @@ Update at the end of each phase.
 - [x] Phase 1: Corpus collection (2026-10-23; audit labels and other "You do" tasks still open)
 - [x] Phase 2: Parse and chunk (2026-10-25; Sharad's inspection and chunk-size tasks still open)
 - [x] Phase 3: Evaluation set (2026-10-26; tooling only: Sharad's questions pending)
-- [ ] Phase 4: Baseline retrieval + eval harness
+- [x] Phase 4: Baseline retrieval + eval harness (2026-10-26; baseline numbers wait for Sharad's questions)
 - [ ] Phase 5: Versions and near-duplicates
 - [ ] Phase 6: Embedding comparison + hybrid
 - [ ] Phase 7: Grounded multi-turn chat
@@ -144,14 +144,17 @@ Update at the end of each phase.
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: 4 (not started). Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then 5 and 6. All "You do" inspections and the eval questions come after the chat prototype works; don't block on them. Notes for the next session:
-- Phase 3 built `rag eval find` (unranked grep over chunk text) and `rag eval validate` (schema, indexed papers, span -> chunk mapping, conversations, mix). `eval/questions.jsonl` doesn't exist yet: Sharad writes it (`eval/README.md`). `rag eval run` is the Phase 4 stub.
-- Phase 4 harness must score Recall@5 through `rag.eval.spans.map_span` (spans mapped at scoring time, D-022), and handle an empty or missing question file gracefully until Sharad's questions exist.
+Current phase: 7 (not started). Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then 5 and 6. All "You do" inspections and the eval questions come after the chat prototype works; don't block on them. Notes for the next session:
+- Phase 4 built `rag index bm25|dense|all` (data/index/bm25, data/index/dense/bge-small-en-v1.5), the Retriever (`rag.retrieve.retriever.Retriever.load(config, {"hybrid"})`, `.retrieve(query, k, mode, allow)`), `rag inspect query`, `rag eval run --name`, and `rag report`. See `notes/phase-4-retrieve.md`.
+- Phase 7 chat should use `Retriever.retrieve(..., allow=...)` (the year filter hook is Sharad's task) and the top dense cosine (`Hit.scores["dense"]`) for the abstention gate, never RRF scores.
+- Full dense rebuild takes 45 min on CPU. The Retriever refuses a stale index (chunks sha256 or settings changed). Build from a clean tree (or a clean worktree with `--config`) so stats carry a clean commit.
+- Known Phase 2 parse issues, deferred to the next re-chunk: figure captions repeat their label ("Figure 4: Figure 4:"); a formula taken as a heading ("ϕ(w) ∝ I(w).").
+- Phase 3 built `rag eval find` (unranked grep over chunk text) and `rag eval validate` (schema, indexed papers, span -> chunk mapping, conversations, mix). `eval/questions.jsonl` doesn't exist yet: Sharad writes it (`eval/README.md`).
 - Phase 2 outputs: `rag parse` and `rag inspect paper`; 1,781 of 1,979 accepted papers indexed, 93,031 chunks in `data/parsed/chunks/chunks.jsonl`. See `notes/phase-2-parse.md`.
 - Chunks: bge-small tokenizer, target 300 / max 448 / overlap 40; header stored separately (`Chunk.header`) and must be prepended at embedding time in Phase 4. References are in `data/parsed/papers/references.jsonl`, never chunked.
 - GROBID is only needed for `rag parse grobid`/`all` (`make grobid-up`, Docker Desktop running). `structure`, `chunk`, `inspect` and `eval` work without it.
 - `rag parse mark` writes `included_in_index` into the manifest; rerun it after `rag collect manifest`. It skips after a `--limit` run.
-- D-013 to D-025 are `proposed`. PyMuPDF is pinned `<2`.
-- Sharad's open "You do" items: Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
+- D-013 to D-031 are `proposed`. PyMuPDF is pinned `<2`.
+- Sharad's open "You do" items: Phase 4 Recall@10 (`TODO(sharad)` in `eval/metrics.py`), hand-computed Recall@5/MRR for 2 questions, Phase 5/6 journal predictions; Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
 - Chunks include linked copies and kept v1s on purpose; Phase 5 dedups (the BPE definition sentence appears in 12 other records).
 - Typer 0.27 vendors Click privately (`typer._click`): don't `import click`. Local uv is 0.11.7.
