@@ -180,6 +180,13 @@ eval:
   max_span_words: 60        # warn above: long spans risk crossing a chunk boundary
   find:
     max_hits: 30
+  # Retrieval metrics (D-031)
+  recall_k: 5
+  mrr_cutoff: 10
+  dup_k: 5
+  bootstrap:
+    samples: 1000           # resamples of the question set for 95% intervals
+    seed: 0
 
 index:
   bm25:

@@ -10,6 +10,11 @@ class FindConfig(StrictModel):
     max_hits: int = Field(ge=1)  # `rag eval find` stops listing after this many
 
 
+class BootstrapConfig(StrictModel):
+    samples: int = Field(ge=100)
+    seed: int
+
+
 class EvalConfig(StrictModel):
     questions_file: str  # under paths.eval
     # PLAN's question mix, as minimums per type (D-025).
@@ -19,3 +24,8 @@ class EvalConfig(StrictModel):
     # Longer spans are more likely to cross a sentence and so a chunk boundary.
     max_span_words: int = Field(ge=1)
     find: FindConfig
+    # Phase 4 metrics (D-031).
+    recall_k: int = Field(ge=1)
+    mrr_cutoff: int = Field(ge=1)
+    dup_k: int = Field(ge=1)
+    bootstrap: BootstrapConfig

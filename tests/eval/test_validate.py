@@ -20,6 +20,10 @@ def eval_config() -> EvalConfig:
         conversations_min=1,
         max_span_words=12,
         find={"max_hits": 3},
+        recall_k=2,
+        mrr_cutoff=3,
+        dup_k=2,
+        bootstrap={"samples": 100, "seed": 0},
     )
 
 

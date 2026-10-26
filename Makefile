@@ -35,7 +35,7 @@ smoke:  ## Run the whole pipeline on a tiny --limit
 	$(RAG) dedup --limit $(SMOKE_LIMIT)
 	$(RAG) index all --limit $(SMOKE_LIMIT)
 	$(RAG) eval validate
-	$(RAG) eval run --limit $(SMOKE_LIMIT)
+	$(RAG) eval run --name smoke --limit $(SMOKE_LIMIT)
 	$(RAG) report smoke
 
 # GROBID (Phase 2) runs in Docker. The image comes from config.yaml so the

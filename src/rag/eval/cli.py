@@ -6,7 +6,7 @@ from typing import Annotated
 import typer
 
 from rag.collect.manifest import read_manifest
-from rag.common.cli import LimitOption, get_config, print_stub
+from rag.common.cli import LimitOption, get_config
 from rag.common.config import Config
 from rag.eval import find as find_mod
 from rag.eval import validate as validate_mod
@@ -66,13 +66,23 @@ def validate(
 
 
 @app.command()
-def run(ctx: typer.Context, limit: LimitOption = None) -> None:
-    """Score retrieval (and later answers) on the eval set; write a results file."""
-    config = get_config(ctx)
-    print_stub(
-        "eval run",
-        "4",
-        reads=f"{config.paths.index}, {config.paths.eval}",
-        writes=str(config.paths.results),
-        limit=limit,
-    )
+def run(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Option(help="Run name: results/<date>-<name>.json")],
+    modes: Annotated[str, typer.Option(help="Comma-separated: bm25,dense,hybrid")] = (
+        "bm25,dense,hybrid"
+    ),
+    file: Annotated[
+        Path | None, typer.Option(help="Questions file (default: eval.questions_file)")
+    ] = None,
+    limit: LimitOption = None,
+) -> None:
+    """Score retrieval modes on the eval set; write a results file for `rag report`."""
+    from rag.eval.run import run_eval
+
+    chosen = [m.strip() for m in modes.split(",") if m.strip()]
+    unknown = set(chosen) - {"bm25", "dense", "hybrid"}
+    if unknown or not chosen:
+        raise typer.BadParameter(f"unknown modes: {sorted(unknown)}", param_hint="--modes")
+    out = run_eval(get_config(ctx), name, chosen, file, limit)
+    typer.echo(f"Wrote {out}" if out else "No questions yet: nothing scored, nothing written.")
