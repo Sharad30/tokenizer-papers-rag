@@ -125,3 +125,46 @@ Phase: 3  ·  Type: prediction
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-26: BM25 vs dense vs hybrid on the baseline
+Phase: 4  ·  Type: prediction
+
+### Prediction (Sharad):
+(Recall@5 and MRR@10 for bm25, dense, hybrid on your questions; which wins on lookups, which on multi-paper? Write before the first `rag eval run --name baseline`)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(results/<date>-baseline.json and .md, commit)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
+
+## 2026-10-26: What dedup will do to the numbers (Phase 5)
+Phase: 4  ·  Type: prediction
+
+### Prediction (Sharad):
+(dup@5 before and after merging versions and copies; does Recall@5 go up, down or stay? Write now, before Phase 5 exists)
+
+### Why I expect this (Sharad):
+
+### What happened:
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
+
+## 2026-10-26: Which embedding model will win (Phase 6)
+Phase: 4  ·  Type: prediction
+
+### Prediction (Sharad):
+(bge-small vs larger general models vs a scientific-domain model; and does hybrid still beat the best dense model? Write now, before Phase 6 exists)
+
+### Why I expect this (Sharad):
+
+### What happened:
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
