@@ -25,19 +25,29 @@ format:  ## Apply ruff formatting and safe lint fixes
 
 check: lint test  ## Lint + tests: run before every commit
 
-# Runs every stage in pipeline order on a tiny --limit. In Phase 0 the stages
-# are stubs; each phase replaces one, and smoke keeps the whole chain honest.
-smoke:  ## Run the whole pipeline on a tiny --limit
-	$(RAG) --help > /dev/null
-	$(RAG) config show > /dev/null
-	$(RAG) collect all --limit $(SMOKE_LIMIT)
-	$(RAG) parse all --limit $(SMOKE_LIMIT)
-	$(RAG) dedup --limit $(SMOKE_LIMIT)
-	$(RAG) index all --limit $(SMOKE_LIMIT)
-	$(RAG) eval validate
-	$(RAG) eval run --name smoke --limit $(SMOKE_LIMIT)
-	@f=$$(ls -t results/*-smoke.json 2>/dev/null | head -1); \
-	if [ -n "$$f" ]; then $(RAG) report $$f; else echo "report: no smoke results (no questions yet)"; fi
+# Runs every stage in pipeline order on a tiny --limit. It uses a copy of
+# config.yaml in .smoke/: every path resolves against the config file's
+# directory, so all outputs land in .smoke/ and the real manifest, chunks
+# and 45-minute dense index are never overwritten. The raw download cache
+# is shared (symlink) so smoke doesn't refetch what's already cached.
+# Needs GROBID running (`make grobid-up`) and network access.
+SMOKE_DIR := .smoke
+SMOKE_RAG = uv run rag --config $(SMOKE_DIR)/config.yaml
+
+smoke:  ## Run the whole pipeline on a tiny --limit, in .smoke/
+	rm -rf $(SMOKE_DIR) && mkdir -p $(SMOKE_DIR)/data
+	cp config.yaml $(SMOKE_DIR)/ && cp -R prompts $(SMOKE_DIR)/
+	ln -s ../../data/raw $(SMOKE_DIR)/data/raw
+	$(SMOKE_RAG) --help > /dev/null
+	$(SMOKE_RAG) config show > /dev/null
+	$(SMOKE_RAG) collect all --limit $(SMOKE_LIMIT)
+	$(SMOKE_RAG) parse all --limit $(SMOKE_LIMIT)
+	$(SMOKE_RAG) dedup --limit $(SMOKE_LIMIT)
+	$(SMOKE_RAG) index all --limit $(SMOKE_LIMIT)
+	$(SMOKE_RAG) eval validate
+	$(SMOKE_RAG) eval run --name smoke --limit $(SMOKE_LIMIT)
+	@f=$$(ls -t $(SMOKE_DIR)/results/*-smoke.json 2>/dev/null | head -1); \
+	if [ -n "$$f" ]; then $(SMOKE_RAG) report $$f; else echo "report: no smoke results (no questions yet)"; fi
 
 # GROBID (Phase 2) runs in Docker. The image comes from config.yaml so the
 # version is pinned in one place.

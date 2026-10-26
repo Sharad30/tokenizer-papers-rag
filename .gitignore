@@ -232,6 +232,5 @@ data/chat/
 # case-insensitive filesystems (macOS); the manifest is committed.
 !data/manifest/
 
-# make smoke's eval runs: throwaway, never committed
-results/*-smoke.*
-docs/figures/*-smoke-metrics.*
+# make smoke works in .smoke/ (a config copy, its own data): throwaway
+.smoke/
