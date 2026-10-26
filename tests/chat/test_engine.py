@@ -83,8 +83,11 @@ def test_gate_one_abstains_without_calling_the_llm(config) -> None:
     assert "Nearest papers (not supporting an answer): BPE Paper" in result.reply
 
 
-def test_model_not_supported_is_an_abstention(config) -> None:
-    engine, _ = make_engine(config, lambda s, m: "NOT_SUPPORTED.")
+@pytest.mark.parametrize(
+    "raw", ["NOT_SUPPORTED", "NOT_SUPPORTED.", "The passages don't cover baking. NOT_SUPPORTED."]
+)
+def test_model_not_supported_is_an_abstention(config, raw: str) -> None:
+    engine, _ = make_engine(config, lambda s, m: raw)
     result = engine.turn("merge operations")
     assert result.abstained == "model"
     assert result.reply.startswith("The retrieved passages don't support an answer")

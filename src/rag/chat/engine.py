@@ -13,6 +13,7 @@ Everything that happened is returned in a TurnResult, which the CLI prints
 and the transcript stores.
 """
 
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -123,9 +124,12 @@ class ChatEngine:
         result.sources = [(n, by_label[label]) for n, label in enumerate(cited.used, start=1)]
 
     def _is_not_supported(self, text: str) -> bool:
-        token = self.config.abstain.not_supported_token
-        # Small models sometimes add punctuation or a short trailer to the token.
-        return text.strip().strip(".!").upper().startswith(token)
+        # The prompt asks for the token alone, but a small model often explains
+        # first ("The passages don't mention X. NOT_SUPPORTED."). Anywhere counts.
+        return (
+            re.search(rf"\b{re.escape(self.config.abstain.not_supported_token)}\b", text)
+            is not None
+        )
 
     def _gate_message(self, top: float | None, context: list[ContextChunk]) -> str:
         threshold = self.config.abstain.min_dense_cosine
