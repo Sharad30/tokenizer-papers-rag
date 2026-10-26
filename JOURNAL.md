@@ -168,3 +168,18 @@ Phase: 4  ·  Type: prediction
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-26: Changing the chat's system prompt
+Phase: 7  ·  Type: prediction
+
+### Prediction (Sharad):
+(what you'll change in prompts/answer_system.md, and what you expect it to do to citations, uncited sentences and abstentions; write before re-running the demo questions)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(rerun the docs/phase7-demo.md questions with `rag chat --debug`; compare the transcripts in data/chat/ via their prompt sha256)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
