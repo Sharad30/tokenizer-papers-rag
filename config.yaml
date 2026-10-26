@@ -237,5 +237,9 @@ chat:
     mode: hybrid
     k: 6                      # chunks in the context (D-034)
   abstain:
-    min_dense_cosine: 0.0     # placeholder until the Phase 7 gate probe sets it (D-036)
+    # From probes/phase-7-gate.py (probe queries, not the eval set): off-topic
+    # max 0.661, in-domain min 0.800, midpoint 0.73. Set lower, at 0.70: 12
+    # in-domain probe queries are few, a wrongly refused real question is
+    # lost, and a wrongly passed one still meets the model's NOT_SUPPORTED.
+    min_dense_cosine: 0.70
     not_supported_token: NOT_SUPPORTED
