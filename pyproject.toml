@@ -38,6 +38,13 @@ dev = [
     "respx>=0.23.1",
     "ruff>=0.17.1",
 ]
+ui = [
+    "streamlit>=1.66",
+]
+
+[tool.uv]
+# The showcase UI is installed by a plain `uv sync`; the core package never imports it.
+default-groups = ["dev", "ui"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
