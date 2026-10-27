@@ -174,3 +174,24 @@ def test_a_reference_list_in_the_body_is_skipped() -> None:
     paper = parse_tei(body_tei(body), "x", "T", CLEAN, counts)
     assert [s.title for s in paper.sections] == ["Conclusion"]
     assert counts["reference_divs_skipped"] == 1
+
+
+def test_figure_labels_and_running_heads_continue_the_previous_section() -> None:
+    counts: Counter[str] = Counter()
+    body = (
+        '<div><head n="3">Results</head><p>BPE wins.</p></div>'
+        "<div><head>Figure 4: Accuracy</head><p>Accuracy rises.</p></div>"
+        "<div><head>A R T I C L E I N P R E S S</head><p>It keeps rising.</p></div>"
+        '<div><head n="3.1">BPE</head><p>Short heading, real section.</p></div>'
+    )
+    paper = parse_tei(body_tei(body), "x", "T", CLEAN, counts)
+    assert [s.title for s in paper.sections] == ["Results", "BPE"]
+    assert [p.sentences[0].text for p in paper.sections[0].paragraphs] == [
+        "BPE wins.",
+        "Accuracy rises.",
+        "It keeps rising.",
+    ]
+    assert counts == {
+        "non_heading_folded.figure_label": 1,
+        "non_heading_folded.letter_spaced": 1,
+    }

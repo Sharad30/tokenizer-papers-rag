@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Iterator
 
-from rag.parse.cleanup import cut_bibliography, is_reference_heading
+from rag.parse.cleanup import cut_bibliography, is_reference_heading, non_heading_kind
 from rag.parse.config import CleanConfig
 from rag.parse.schemas import (
     Figure,
@@ -114,10 +114,13 @@ def _sections(
             counts["reference_divs_skipped"] += 1
             continue
         paragraphs = cut_bibliography(list(_div_paragraphs(div, formulas)), clean, counts)
-        if head is None or len(LETTER.findall(_text(head))) < MIN_HEADING_LETTERS:
+        not_heading = non_heading_kind(_clean(_text(head))) if head is not None else None
+        if not_heading:
+            counts[f"non_heading_folded.{not_heading}"] += 1
+        if head is None or len(LETTER.findall(_text(head))) < MIN_HEADING_LETTERS or not_heading:
             # GROBID starts a new headless div after a figure or page break,
-            # and mislabels some fragments as headings; both continue the
-            # previous section.
+            # and mislabels some fragments as headings (formula pieces, figure
+            # labels, running heads; D-039); all continue the previous section.
             if sections:
                 sections[-1].paragraphs.extend(paragraphs)
                 continue

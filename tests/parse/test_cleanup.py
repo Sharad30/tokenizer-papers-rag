@@ -2,7 +2,7 @@ from collections import Counter
 
 import pytest
 
-from rag.parse.cleanup import cut_bibliography, is_entry_piece
+from rag.parse.cleanup import cut_bibliography, is_entry_piece, non_heading_kind
 from rag.parse.config import CleanConfig
 from rag.parse.schemas import Paragraph, Sentence
 
@@ -132,3 +132,41 @@ def test_the_cut_walks_back_over_authors_and_title() -> None:
         Counter(),
     )
     assert texts(kept) == [["We stop here."]]
+
+
+@pytest.mark.parametrize(
+    ("heading", "kind"),
+    [
+        ("Figure 4: Accuracy", "figure_label"),
+        ("Table 5", "figure_label"),
+        ("Fig. 2. A Motivating Example", "figure_label"),
+        ("AE(w) = W E(w) SE(w)", "equation"),
+        ("ϕ(w) ∝ I(w).", "equation"),
+        ("A R T I C L E I N P R E S S", "letter_spaced"),
+        (
+            "MEGABYTE: Predicting million-byte sequences. In Proceedings of NeurIPS",
+            "reference_title",
+        ),
+    ],
+)
+def test_non_headings(heading: str, kind: str) -> None:
+    assert non_heading_kind(heading) == kind
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "BPE",
+        "NER",
+        "GPT-4",
+        "B.1 NER",
+        "FR+ES→EN transformer",
+        "A.4. Fixed l vs l → ∞",
+        "Tables",
+        "Information Theoretic Lower Bound (L = 1)",
+        "F.2 |V| = 60000, T = 1.0",
+        "Best Tokenization = Best Translation?",
+    ],
+)
+def test_short_real_headings_stay(heading: str) -> None:
+    assert non_heading_kind(heading) is None

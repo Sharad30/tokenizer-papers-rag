@@ -6,9 +6,14 @@ references on the page), split into sentences like
 
     "Name, Name, and Name." | "2023." | "Title." | "Preprint, arXiv:2306.16842."
 
-A paragraph's tail is cut from the first such entry piece when the tail is
-mostly entry pieces. Prose citing a paper ("Phan et al. (2024).") is never an
+A paragraph's tail is cut from the first such entry piece when enough of the
+tail is entry pieces. Prose citing a paper ("Phan et al. (2024).") is never an
 entry piece, and one stray piece never cuts.
+
+Non-headings: GROBID also takes some figure labels, equations, running heads
+and reference titles for section headings. Their div continues the previous
+section. The rules are narrow on purpose: short real headings ("BPE", "NER",
+"GPT-4") stay headings.
 """
 
 import re
@@ -38,6 +43,21 @@ AUTHOR_LIST = re.compile(rf"^{_NAME}(?:(?:,| and|, and) {_NAME})*(?:,? et al)?\.
 # Body sections that are the reference list itself.
 REFERENCE_HEADINGS = {"references", "bibliography", "reference"}
 
+RELATION = re.compile(r"[=∝∈≤≥]")
+WORD = re.compile(r"[^\W\d_]{4,}")
+EQUATION_MAX_WORDS = 2  # fewer words of 4+ letters than this around a relation: an equation
+SECTION_NUMBER = re.compile(r"^[A-Z]?\d*(?:\.\d+)+\.?\s")  # "F.2 ", "3.1 ", "A.4. "
+
+# Heading text that isn't a heading, by kind (for stats.json).
+NON_HEADINGS = {
+    "figure_label": re.compile(r"^(?:Fig\.?|Figure|Table|Tab\.)\s*[A-Z]?\d+\b", re.IGNORECASE),
+    "letter_spaced": re.compile(r"^(?:\S ){4,}\S$"),  # "A R T I C L E I N P R E S S"
+    "reference_title": re.compile(
+        r"\bIn (?:Proceedings|Findings) of|Conference on|Association for Computational"
+        r"|arXiv:\d"
+    ),
+}
+
 
 def is_entry_piece(sentence: str) -> bool:
     return bool(VENUE.search(sentence) or YEAR_ONLY.match(sentence) or ENTRY_START.match(sentence))
@@ -45,6 +65,30 @@ def is_entry_piece(sentence: str) -> bool:
 
 def is_reference_heading(heading: str) -> bool:
     return heading.strip(" .:").lower() in REFERENCE_HEADINGS
+
+
+def non_heading_kind(heading: str) -> str | None:
+    """Why this heading text isn't a real heading, or None if it is one."""
+    for kind, pattern in NON_HEADINGS.items():
+        if pattern.search(heading):
+            return kind
+    if _is_equation(heading):
+        return "equation"
+    return None
+
+
+def _is_equation(heading: str) -> bool:
+    """A relation with almost no words around it ("AE(w) = W E(w) SE(w)", "OSR =").
+
+    Relations, not arrows ("FR+ES→EN transformer" is a heading). Headings that
+    name a bound or setting ("Lower Bound (L = 1)", "F.2 |V| = 60000") have words
+    or a section number, so they stay.
+    """
+    return (
+        bool(RELATION.search(heading))
+        and len(WORD.findall(heading)) < EQUATION_MAX_WORDS
+        and not SECTION_NUMBER.match(heading)
+    )
 
 
 def cut_bibliography(
