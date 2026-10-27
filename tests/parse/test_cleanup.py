@@ -142,6 +142,7 @@ def test_the_cut_walks_back_over_authors_and_title() -> None:
         ("Fig. 2. A Motivating Example", "figure_label"),
         ("AE(w) = W E(w) SE(w)", "equation"),
         ("ϕ(w) ∝ I(w).", "equation"),
+        ("out ⩾ b(i).", "equation"),
         ("A R T I C L E I N P R E S S", "letter_spaced"),
         (
             "MEGABYTE: Predicting million-byte sequences. In Proceedings of NeurIPS",

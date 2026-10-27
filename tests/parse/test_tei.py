@@ -136,13 +136,19 @@ def test_empty_body() -> None:
 
 def test_label_grobid_copied_into_the_caption_is_stripped() -> None:
     counts: Counter[str] = Counter()
-    body = figure("Figure 2", "Figure2: BLEU by vocabulary size.") + figure(
-        "Fig. 3", "Fig. 3. Merge counts."
+    body = (
+        figure("Figure 2", "Figure2: BLEU by vocabulary size.")
+        + figure("Fig. 3", "Fig. 3. Merge counts.")
+        + figure("Figure 4", "Figure 4 General architecture.")  # journal style
     )
     paper = parse_tei(body_tei(body), "x", "T", CLEAN, counts)
     got = [(f.label, f.caption) for f in paper.figures]
-    assert got == [("Figure 2", "BLEU by vocabulary size."), ("Figure 3", "Merge counts.")]
-    assert counts == {"captions_label_stripped": 2, "caption_label_replaced": 1}
+    assert got == [
+        ("Figure 2", "BLEU by vocabulary size."),
+        ("Figure 3", "Merge counts."),
+        ("Figure 4", "General architecture."),
+    ]
+    assert counts == {"captions_label_stripped": 3, "caption_label_replaced": 1}
 
 
 def test_the_captions_own_label_replaces_a_junk_head() -> None:

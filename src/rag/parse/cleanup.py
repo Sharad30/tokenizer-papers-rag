@@ -43,7 +43,7 @@ AUTHOR_LIST = re.compile(rf"^{_NAME}(?:(?:,| and|, and) {_NAME})*(?:,? et al)?\.
 # Body sections that are the reference list itself.
 REFERENCE_HEADINGS = {"references", "bibliography", "reference"}
 
-RELATION = re.compile(r"[=∝∈≤≥]")
+RELATION = re.compile(r"[=∝∈≤≥⩽⩾]")
 WORD = re.compile(r"[^\W\d_]{4,}")
 EQUATION_MAX_WORDS = 2  # fewer words of 4+ letters than this around a relation: an equation
 SECTION_NUMBER = re.compile(r"^[A-Z]?\d*(?:\.\d+)+\.?\s")  # "F.2 ", "3.1 ", "A.4. "

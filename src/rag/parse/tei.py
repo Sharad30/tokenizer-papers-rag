@@ -43,9 +43,12 @@ SKIPPED_BACK_DIVS = {"references", "acknowledgement", "availability", "funding"}
 ARXIV_PREFIX = re.compile(r"^arxiv:\s*", re.IGNORECASE)
 LABEL_TAIL = re.compile(r"\s*[:.]\s*$")  # "Table 1 :" -> "Table 1"
 # GROBID copies the printed label into most figure captions ("Figure2: BLEU by
-# vocabulary size."). The separator after the number is required, so a caption
-# that is prose about a table ("Table 2 compares ...") keeps its text.
-CAPTION_LABEL = re.compile(r"^(Figure|Fig\.?|Table)\s*([A-Z]?\d+[a-z]?)\s*[:.]\s*", re.IGNORECASE)
+# vocabulary size."; journals print "Figure 2 General architecture"). A ":" or
+# "." or a capital letter must follow the number, so a caption that is prose
+# about a table ("Table 2 compares ...") keeps its text.
+CAPTION_LABEL = re.compile(
+    r"^(Figure|Fig\.?|Table)\s*([A-Z]?\d+[a-z]?)(?:\s*[:.]\s*|\s+(?=(?-i:[A-Z])))", re.IGNORECASE
+)
 WHITESPACE = re.compile(r"\s+")
 LETTER = re.compile(r"[^\W\d_]")
 # CRF GROBID sometimes labels a formula fragment as a heading ("←h m )." in
