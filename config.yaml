@@ -254,3 +254,11 @@ showcase:
     # Rejected abstracts are gitignored, so the snapshot keeps this many per
     # decision path for a fresh clone to draw examples from.
     pool_per_path: 40
+  parse:
+    pool_size: 30          # chunks per element type / quality check kept in the snapshot
+    snapshot_papers: 6     # whole papers (structure + chunks) in the snapshot
+    token_bin_width: 32    # token histogram bins
+    # A paragraph chunk with this many bibliography-entry patterns ("In
+    # Proceedings of", "arXiv preprint arXiv:", "pages 1-10") is flagged as
+    # leaked reference-list text. Set by eye on real chunks.
+    bibliography_min_matches: 3

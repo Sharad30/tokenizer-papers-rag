@@ -150,3 +150,8 @@ showcase:
   examples_shown: 2
   collect:
     pool_per_path: 3
+  parse:
+    pool_size: 2
+    snapshot_papers: 1
+    token_bin_width: 10
+    bibliography_min_matches: 2
