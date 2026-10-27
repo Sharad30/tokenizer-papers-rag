@@ -15,6 +15,7 @@ paths:
   figures: docs/figures    # Phase 4+: plots from `rag report` (committed)
   chat: data/chat          # Phase 7: chat transcripts, one JSONL per session (gitignored)
   prompts: prompts         # Phase 7: system prompts as editable files (committed)
+  snapshot: data/snapshot  # showcase UI: data a fresh clone lacks (committed; D-038)
 
 logging:
   level: INFO              # DEBUG | INFO | WARNING | ERROR
@@ -243,3 +244,13 @@ chat:
     # lost, and a wrongly passed one still meets the model's NOT_SUPPORTED.
     min_dense_cosine: 0.70
     not_supported_token: NOT_SUPPORTED
+
+showcase:
+  # The Streamlit pages (`make ui`). Numbers are computed from stage outputs;
+  # examples are sampled from the data, never hand-picked (D-038).
+  seed: 13             # first sample of examples; "Show others" moves on from it
+  examples_shown: 3
+  collect:
+    # Rejected abstracts are gitignored, so the snapshot keeps this many per
+    # decision path for a fresh clone to draw examples from.
+    pool_per_path: 40

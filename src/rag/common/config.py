@@ -19,6 +19,7 @@ from rag.eval.config import EvalConfig
 from rag.index.config import IndexConfig
 from rag.parse.config import ParseConfig
 from rag.retrieve.config import RetrieveConfig
+from rag.showcase.config import ShowcaseConfig
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
 
@@ -40,6 +41,7 @@ class PathsConfig(StrictModel):
     figures: Path
     chat: Path
     prompts: Path
+    snapshot: Path
 
     def resolved_against(self, base: Path) -> "PathsConfig":
         # Resolving against the config file (not the current directory) means
@@ -68,6 +70,7 @@ class Config(StrictModel):
     index: IndexConfig
     retrieve: RetrieveConfig
     chat: ChatConfig
+    showcase: ShowcaseConfig
     # TODO(sharad): Phase 0 "You do": add one config field of your own here
     # (and to config.yaml), then use it in the `rag collect` stub in
     # src/rag/collect/cli.py.

@@ -10,6 +10,7 @@ paths:
   figures: out/figures
   chat: out/chat
   prompts: out/prompts
+  snapshot: out/snapshot
 logging:
   level: DEBUG
 corpus:
@@ -144,3 +145,8 @@ chat:
   abstain:
     min_dense_cosine: 0.2
     not_supported_token: NOT_SUPPORTED
+showcase:
+  seed: 1
+  examples_shown: 2
+  collect:
+    pool_per_path: 3
