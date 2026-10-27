@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 SPECIAL_TOKENS = 2  # [CLS] and [SEP], added by the model around every input
 HEADER_SEPARATOR = " > "
 PARAGRAPH_JOIN = "\n\n"
+FORMULA_PLACEHOLDER = "[equation]"  # stands in for a long display formula (D-019)
 
 
 @dataclass(frozen=True)
@@ -121,7 +122,7 @@ class Chunker:
             for sentence in paragraph.sentences:
                 text = sentence.text
                 if paragraph.formula_id is not None and len(text) > self._config.formula_max_chars:
-                    text = "[equation]"
+                    text = FORMULA_PLACEHOLDER
                     result.formula_placeholders += 1
                 tokens = self._counter.count(text)
                 if tokens <= self._config.max_tokens:
