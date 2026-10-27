@@ -301,13 +301,15 @@ Phases 1 and 2 have long-running jobs (downloads, GROBID). Start them in the bac
 
 ---
 
-## Queued before Phase 5: chunker fixes (added 2026-10-27)
+## Queued before Phase 5: chunker fixes (added 2026-10-27; done 2026-10-27, D-039)
 
 Three Phase 2 defects found by the Parse page's checks, fixed in one batch so the corpus is re-chunked and re-indexed once (~45 min dense rebuild). Start in plan mode: each fix has options to agree first.
 
 1. **Repeated caption labels** (5,260 chunks, "Figure 2: Figure 2."): `chunker._labelled` prepends a label GROBID's caption already starts with. Skip the prefix when the caption already carries it.
 2. **Reference-list text in body chunks** (~180 paragraphs, e.g. `arxiv:2507.23248v2#0034`): GROBID leaves some bibliography entries in a body section. Drop or re-route those paragraphs in `structure`, so "references are never indexed" (D-021) holds.
 3. **Non-headings taken as section headings** (~689 chunks: "Fig. 1", "( a )", a formula): fold them into the previous section. The check also flags real short headings ("BPE"), so the rule needs care.
+
+**Done:** fixed at structure time (`src/rag/parse/cleanup.py`, `tei.py`), not in the chunker. Check counts 5,260 → 76, 180 → 18, 404 → 164 (heading check corrected to exempt acronyms); chunks 93,031 → 92,820; index rebuilt. Residue and numbers in D-039.
 
 Each fix gets a unit test from a real failing case. **Exit:** the Parse page's three check counts drop (to ~0 for 1 and 2), `rag index all` rebuilt from a clean tree, snapshots regenerated, before/after counts recorded in an `exp` commit.
 
