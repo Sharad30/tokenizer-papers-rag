@@ -63,11 +63,15 @@ def test_check_flags_find_each_known_defect() -> None:
     assert flags["1"] == [] and flags["0"] == []
 
 
-def test_short_real_heading_is_flagged_but_a_word_is_not() -> None:
-    bpe = chunk(9, ElementType.PARAGRAPH, "x", path=("BPE",))
-    method = chunk(9, ElementType.PARAGRAPH, "x", path=("Method",))
-    assert parse.check_flags(bpe, 3) == ["odd_heading"]
-    assert parse.check_flags(method, 3) == []
+@pytest.mark.parametrize("heading", ["BPE", "B.1 NER", "GPT-4", "ByT5", "Method"])
+def test_real_headings_are_not_flagged(heading: str) -> None:
+    assert parse.check_flags(chunk(9, ElementType.PARAGRAPH, "x", path=(heading,)), 3) == []
+
+
+@pytest.mark.parametrize("heading", ["( a )", "OSR =", "ϕ(w) ∝ I(w).", "Table 5"])
+def test_formula_and_figure_headings_are_flagged(heading: str) -> None:
+    flags = parse.check_flags(chunk(9, ElementType.PARAGRAPH, "x", path=(heading,)), 3)
+    assert flags == ["odd_heading"]
 
 
 def test_overview_counts() -> None:

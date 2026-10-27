@@ -45,6 +45,8 @@ _BIBLIOGRAPHY = re.compile(
     r"|pages \d+[–-]\d+|\b(?:19|20)\d{2}\. [A-Z]"
 )
 _WORD = re.compile(r"[^\W\d_]{4,}")
+# Short real headings are acronyms or names: "BPE", "B.1 NER", "GPT-4", "ByT5".
+_ACRONYM_HEADING = re.compile(r"^[A-Z0-9][\w.+\-]*(?: [A-Z0-9][\w.+\-]*)*$")
 _FIGURE_LABEL = re.compile(r"^(Fig\.?|Figure|Table)\s*\d+", re.IGNORECASE)
 
 
@@ -70,9 +72,10 @@ CHECKS = [
     QualityCheck(
         key="odd_heading",
         label="Suspicious section heading",
-        why='A heading with no word of 4+ letters or that is a figure label ("Fig. 1", '
-        '"( a )"): figure text or a formula taken as a heading, so the chunk\'s section path '
-        'and citation are wrong. Short real headings ("BPE") are flagged too.',
+        why='A heading with no word of 4+ letters that isn\'t an acronym ("( a )", "OSR =") '
+        'or that is a figure label ("Fig. 1"): figure text or a formula taken as a heading, '
+        "so the chunk's section path and citation are wrong. Acronym headings such as "
+        '"BPE" or "GPT-4" are not flagged.',
     ),
 ]
 
@@ -94,7 +97,10 @@ def check_flags(chunk: Chunk, bibliography_min_matches: int) -> list[str]:
     if (
         chunk.element_type is ElementType.PARAGRAPH
         and heading
-        and (not _WORD.search(heading) or _FIGURE_LABEL.match(heading))
+        and (
+            (not _WORD.search(heading) and not _ACRONYM_HEADING.match(heading))
+            or _FIGURE_LABEL.match(heading)
+        )
     ):
         flags.append("odd_heading")
     return flags
