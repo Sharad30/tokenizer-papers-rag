@@ -38,8 +38,22 @@ Every stage takes `--limit N` and writes a `stats.json` next to its outputs.
 All settings live in `config.yaml` (`uv run rag config show` prints the
 validated version). Use `--config PATH` or `RAG_CONFIG` to point at another config.
 
+## Showcase UI
+
+```bash
+make ui                          # opens http://localhost:8501
+uv run rag showcase snapshot     # refresh data/snapshot/ after the data changes
+```
+
+One page per pipeline stage: its key numbers, how it decides, and examples
+sampled from the data ("Show others" draws new ones). Everything is computed
+from the stage outputs when a page loads, so it always matches the current
+data; a committed snapshot covers what a fresh clone doesn't have (D-038).
+Pages so far: the system diagram, Collect.
+
 ## Repository map
 
+- `ui/`: the showcase pages (rendering only; logic in `src/rag/showcase/`)
 - `docs/architecture.md`: block diagram of the whole system and where to look for each block
 - `src/rag/`: the package, one folder per stage plus `common/`
 - `tests/`: pytest suite (`make test`)

@@ -4,7 +4,7 @@
 RAG := uv run rag
 SMOKE_LIMIT := 2
 
-.PHONY: help install test lint format check smoke grobid-up grobid-down clean
+.PHONY: help install test lint format check smoke ui grobid-up grobid-down clean
 
 help:  ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -24,6 +24,9 @@ format:  ## Apply ruff formatting and safe lint fixes
 	uv run ruff check --fix .
 
 check: lint test  ## Lint + tests: run before every commit
+
+ui:  ## Open the showcase UI (one page per stage) in the browser
+	uv run streamlit run ui/app.py
 
 # Runs every stage in pipeline order on a tiny --limit. It uses a copy of
 # config.yaml in .smoke/: every path resolves against the config file's
