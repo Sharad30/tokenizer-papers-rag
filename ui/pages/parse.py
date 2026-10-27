@@ -305,10 +305,11 @@ else:
 
 # --- Quality checks -------------------------------------------------------------------------
 
-st.header("Known defects, found by checks over every chunk")
+st.header("Quality checks over every chunk")
 st.write(
-    "Heuristics for problems seen while inspecting chunks. Counts are over the whole "
-    "corpus; fixes wait for the next re-chunk, which forces a 45-minute re-index."
+    "Heuristics for problems seen while inspecting chunks, counted over the whole corpus. "
+    "The clean-up rules in D-039 fixed most of them (before and after counts are recorded "
+    "there); what's left is what the rules don't catch."
 )
 for check in parse.CHECKS:
     pool = data.check_pools.get(check.key, [])

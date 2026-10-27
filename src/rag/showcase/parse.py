@@ -60,14 +60,16 @@ CHECKS = [
     QualityCheck(
         key="repeated_label",
         label="Caption repeats its label",
-        why='"Figure 2: Figure 2." GROBID\'s caption already holds the label and the chunker '
-        'adds it again. Harmless for meaning, but it inflates BM25 counts for "figure".',
+        why='"Table 1: Table 1, …". GROBID copies the label into the caption; the structure '
+        "step strips it (D-039), so what's left is mostly prose GROBID took for a caption.",
     ),
     QualityCheck(
         key="bibliography",
         label="Reference-list text in a paragraph",
         why="Bibliography entries leaked into a body chunk (usually the last section). They "
-        "match queries on paper titles and venues, and references should never be indexed.",
+        "match queries on paper titles and venues, and references should never be indexed. "
+        "The structure step cuts them (D-039); what's left is mostly author lists split "
+        "across paragraphs.",
     ),
     QualityCheck(
         key="odd_heading",
