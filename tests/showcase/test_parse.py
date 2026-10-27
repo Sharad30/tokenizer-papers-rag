@@ -155,6 +155,8 @@ def test_load_live_and_open_a_paper(config: Config) -> None:
     assert data.overview.chunks == 7
     assert [c.chunk_id[-1] for c in data.check_pools["bibliography"]] == ["3"]
     assert data.paper_ids == [PAPER]
+    assert data.titles == {PAPER: "BPE Revisited"}
+    assert [c.chunk_id[-1] for c in data.formula_pool] == ["4"]
     paper = parse.open_paper(config, data, PAPER)
     assert paper.title == "BPE Revisited"
     assert paper.sections[0].paragraphs == 1
@@ -181,6 +183,8 @@ def test_snapshot_round_trip_is_down_sampled(config: Config) -> None:
     assert len(snap.element_pools["paragraph"]) == 2  # pool_size in the fixture config
     assert len(snap.references) == 2
     assert list(snap.papers) == [PAPER]
+    assert snap.titles == {PAPER: "BPE Revisited"}
+    assert len(snap.formula_pool) == 1
     assert parse.open_paper(config, snap, PAPER).title == "BPE Revisited"
 
 

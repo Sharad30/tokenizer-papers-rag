@@ -18,7 +18,7 @@ from typing import Literal, TypeVar
 from rag.common.config import Config
 from rag.common.io import read_jsonl
 from rag.common.schemas import StrictModel
-from rag.parse.chunker import FORMULA_PLACEHOLDER, SPECIAL_TOKENS
+from rag.parse.chunker import FORMULA_PLACEHOLDER, HEADER_SEPARATOR, SPECIAL_TOKENS
 from rag.parse.pipeline import CHUNKS, RECORDS, REFERENCES, STATUS, safe_name, step_dir
 from rag.parse.schemas import (
     Chunk,
@@ -239,11 +239,13 @@ class ParseData(StrictModel):
     snapshot: Snapshot | None = None
     stale: list[str] = []
     overview: ParseOverview | None = None
-    element_pools: dict[str, list[Chunk]] = {}
+    element_pools: dict[str, list[Chunk]] = {}  # every chunk, by element type (live)
+    formula_pool: list[Chunk] = []  # chunks where a long formula became a placeholder
     check_pools: dict[str, list[Chunk]] = {}
     references: list[Reference] = []
     papers: dict[str, PaperView] = {}  # snapshot only; live papers are opened on demand
     paper_ids: list[str] = []  # papers that can be opened
+    titles: dict[str, str] = {}  # record_id -> title, for picking a paper
 
 
 def source_files(config: Config) -> dict[str, Path]:
@@ -289,6 +291,7 @@ def _live(config: Config, files: dict[str, Path]) -> ParseData:
         origin="live",
         overview=view,
         element_pools={e.value: [c for c in chunks if c.element_type is e] for e in ElementType},
+        formula_pool=[c for c in chunks if FORMULA_PLACEHOLDER in c.text],
         check_pools={
             check.key: [
                 c for c in chunks if check.key in check_flags(c, show.bibliography_min_matches)
@@ -297,7 +300,13 @@ def _live(config: Config, files: dict[str, Path]) -> ParseData:
         },
         references=references,
         paper_ids=sorted({c.record_id for c in chunks}),
+        titles={c.record_id: _title(c) for c in chunks},
     )
+
+
+def _title(chunk: Chunk) -> str:
+    # The header is "Title > Section > ...": its first part is the paper title.
+    return chunk.header.split(HEADER_SEPARATOR, 1)[0]
 
 
 def open_paper(config: Config, data: ParseData, record_id: str) -> PaperView | None:
@@ -332,9 +341,11 @@ def snapshot_data(config: Config, data: ParseData, show: ParseShowcaseConfig, se
         check_pools={
             k: sample(v, show.pool_size, seed, chunk_key) for k, v in data.check_pools.items()
         },
+        formula_pool=sample(data.formula_pool, show.pool_size, seed, chunk_key),
         references=sample(data.references, show.pool_size, seed, reference_key),
         papers=papers,
         paper_ids=sorted(papers),
+        titles={record_id: data.titles[record_id] for record_id in papers},
     )
     return reduced.model_dump(mode="json", exclude={"origin", "snapshot", "stale"})
 

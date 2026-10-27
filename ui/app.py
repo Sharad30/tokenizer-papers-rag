@@ -15,7 +15,10 @@ st.set_page_config(page_title="Tokenizer papers RAG", layout="wide")
 page = st.navigation(
     {
         "Overview": [st.Page(PAGES / "home.py", title="The system", default=True)],
-        "Pipeline": [st.Page(PAGES / "collect.py", title="1 · Collect")],
+        "Pipeline": [
+            st.Page(PAGES / "collect.py", title="1 · Collect"),
+            st.Page(PAGES / "parse.py", title="2 · Parse and chunk"),
+        ],
     }
 )
 page.run()

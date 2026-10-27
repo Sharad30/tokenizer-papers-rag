@@ -5,10 +5,11 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from rag.common.config import Config
-from rag.showcase import collect
+from rag.common.config import Config, load_config
+from rag.showcase import collect, parse
 from rag.showcase.sources import snapshot_file, write_snapshot
 from tests.showcase.conftest import write_filtered
+from tests.showcase.test_parse import write_parse_outputs
 
 UI = Path(__file__).resolve().parents[2] / "ui"
 TIMEOUT_S = 30
@@ -97,3 +98,56 @@ def test_search_and_try_the_rules(config: Config, collect_page: AppTest) -> None
         "BPE Merges Revisited (acl:2020.acl-main.1)",
         "BPE Merges Revisited (arxiv:2001.00001v1)",
     ]
+
+
+@pytest.fixture
+def parse_page(write_config, minimal_config_text: str, monkeypatch: pytest.MonkeyPatch):
+    config_path = write_config(minimal_config_text)
+    monkeypatch.setenv("RAG_CONFIG", str(config_path))
+    page = AppTest.from_file(str(UI / "pages" / "parse.py"), default_timeout=TIMEOUT_S)
+    return load_config(config_path), page
+
+
+def test_parse_page_without_data_says_what_to_run(parse_page) -> None:
+    _, page = parse_page
+    at = page.run()
+    assert "rag parse all" in at.error[0].value
+
+
+def test_parse_page_live(parse_page) -> None:
+    config, page = parse_page
+    write_parse_outputs(config)
+    at = page.run()
+    assert not at.exception
+    metrics = {m.label: m.value for m in at.metric}
+    assert metrics["Chunks"] == "7"
+    # The fixture config's model limit is 40 tokens: the 40- and 510-token chunks exceed it.
+    assert metrics["Chunks over the limit"] == "2"
+    assert [e.label for e in at.expander] == [
+        "Caption repeats its label: 1 chunks",
+        "Reference-list text in a paragraph: 1 chunks",
+        "Suspicious section heading: 1 chunks",
+    ]
+    at.selectbox(key="parse_section").set_value("Intro").run()
+    assert any("It starts from characters." in c.value for c in at.caption if "Overlap" in c.value)
+    at.button(key="parse_resample").click().run()
+    assert not at.exception
+
+
+def test_parse_page_from_the_snapshot(parse_page) -> None:
+    config, page = parse_page
+    write_parse_outputs(config)
+    data = parse.snapshot_data(config, parse.load(config), config.showcase.parse, seed=1)
+    write_snapshot(
+        snapshot_file(config.paths.snapshot, parse.STAGE),
+        parse.STAGE,
+        parse.source_files(config),
+        data,
+        "abc12345",
+    )
+    for file in parse.source_files(config).values():
+        file.unlink()
+    at = page.run()
+    assert not at.exception
+    assert "snapshot from commit abc12345" in at.caption[0].value
+    assert {m.label: m.value for m in at.metric}["Chunks"] == "7"
