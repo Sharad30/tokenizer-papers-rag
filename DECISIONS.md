@@ -266,6 +266,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: caption chunks crowd the top-k with low-value hits.
+- Update 2026-10-27: GROBID's caption already carried the label, so captions read "Figure 2: Figure2: …"; fixed at structure time (D-039).
 
 ## D-019: Keep short display formulas, replace long ones with a placeholder
 - Date / Phase: 2026-10-25 / Phase 2
@@ -303,6 +304,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: later stages need finer status (e.g. dedup exclusions in Phase 5).
+- Note 2026-10-27: reference-list text GROBID left in body sections was reaching the index; cut at structure time (D-039).
 
 ## D-022: Eval gold is a verbatim span in a named paper, mapped to chunks at scoring time
 - Date / Phase: 2026-10-26 / Phase 3
@@ -516,3 +518,33 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: judgement call.
 - Tuned on eval set?: no
 - Revisit if: snapshots grow past a few MB.
+
+## D-039: Clean-up rules for text GROBID puts in the wrong place
+- Date / Phase: 2026-10-27 / Phase 2 fix-up (queued before Phase 5)
+- Status: proposed
+- Context: the Parse page's checks found three defects after Phase 2: 5,260 caption chunks repeating their label ("Figure 2: Figure2: …"), 180 paragraph chunks holding reference-list text (contradicting D-021's "references are never indexed"), and non-headings taken as section headings (figure labels, equations, running heads), which give chunks a wrong section path and citation.
+- Options considered (one set per defect):
+  1. Captions.
+     - Strip the label GROBID copies into `figDesc` at structure time and use it, normalised ("Figure 2"), as the label. Pros: StructuredPaper is clean too; the caption's label also fixes junk `<head>` labels; "Figure2" stops being one BM25 token. Cons: a regex on caption starts.
+     - Skip the prefix in `chunker._labelled`. Pros: one line. Cons: StructuredPaper keeps the duplication and the junk labels.
+  2. Bibliography text.
+     - Cut a paragraph's tail from the first entry piece (venue marker, bare year, "Names. 2019." start) when the tail holds ≥ 2 pieces making up ≥ 30% of it, walking back over the entry's author list and title. Pros: keeps the prose in mixed paragraphs. Cons: several regexes and thresholds.
+     - Drop whole paragraphs that are mostly entries. Pros: simpler. Cons: loses prose in mixed paragraphs and misses big mixed ones.
+     - Keep the text and filter the chunks at retrieval. Cons: junk stays in BM25 and D-021 stays false.
+  3. Headings.
+     - Narrow rules: a figure or table label, an equation (a relation sign with < 2 words of 4+ letters and no section number), letter-spaced text, a venue line. That div continues the previous section, as headless divs already did. Pros: real short headings ("BPE", "NER", "Lower Bound (L = 1)") stay. Cons: misses odd cases.
+     - The Parse page's broad check (no word of 4+ letters). Cons: would fold ~250 real headings.
+- Choice: the first option for each, in `src/rag/parse/cleanup.py` and `tei.py`, thresholds in `parse.clean`. The share started at 0.5 but left entries behind: an entry is ~4–5 sentences with ~2 flagged, so a run of entries is ~40% flagged.
+- Evidence (re-chunk 2026-10-27, Parse page checks with the heading check corrected to exempt acronyms):
+
+  | | Before | After |
+  |---|---|---|
+  | Caption repeats its label | 5,260 | 76 (prose GROBID took as a caption: "Table 1, in which …") |
+  | Reference-list text in a paragraph | 180 | 18 (author lists split across paragraphs) |
+  | Suspicious heading | 404 | 164 (table header rows, "D.2 \|V\| = 60000" style headings) |
+  | Chunks | 93,031 | 92,820 |
+  | References stored | 66,588 | 66,588 |
+
+  Structure stats: 5,831 caption labels stripped (768 replaced a different `<head>`), 2,382 bibliography sentences and 110 whole paragraphs dropped, 5 "References" body divs skipped, 147 non-headings folded (76 figure labels, 46 equations, 14 venue lines, 11 letter-spaced). A hand audit of every partial cut and a sample of whole-paragraph cuts found no prose removed.
+- Tuned on eval set?: no (tuned on the structured papers by inspection; no eval questions exist yet)
+- Revisit if: the residue shows up in retrieval, or a new GROBID version changes caption or heading output.

@@ -212,6 +212,41 @@ Two things to keep in mind for Phase 4:
 - **The spike at 448 tokens.** Whole paragraphs are kept if they fit
   `max_tokens`, and large tables fill up to the cap.
 
+## 9. Fixes after review (D-039)
+
+The Parse page's quality checks (`src/rag/showcase/parse.py`, `check_flags`)
+found three things GROBID puts in the wrong place. All three are fixed in the
+structure step (`src/rag/parse/cleanup.py`, called from `tei.py`), so the
+StructuredPaper, `rag inspect paper` and the chunks agree.
+
+- **Captions repeated their label.** `figDesc` already starts with the printed
+  label ("Figure2: BLEU …") and `chunker._labelled` added `<head>` again.
+  `tei._caption_parts` now strips the leading label (`CAPTION_LABEL`) and uses
+  it as the label. A ":" or "." or a capital letter must follow the number,
+  so "Table 2 compares …" stays prose.
+- **Reference-list text in the body.** GROBID leaves some bibliography lines
+  in the last body section (Limitations, Ethics), split into sentences:
+  authors | year | title | venue. `cleanup.cut_bibliography` flags entry
+  pieces (`is_entry_piece`) and cuts a paragraph's tail when enough of it is
+  pieces, then walks back over the author list and title (`AUTHOR_LIST`).
+  Prose that cites a paper ("Phan et al. (2024).") never matches. One stray
+  piece never cuts.
+- **Non-headings as headings.** `cleanup.non_heading_kind`: a figure label,
+  an equation, letter-spaced running heads, venue lines. Their div continues
+  the previous section. The rules are narrow because short real headings
+  ("BPE", "NER") look like noise to a broad rule; the Parse page's first
+  heading check made exactly that mistake.
+
+Before → after on the Parse page: repeated labels 5,260 → 76, bibliography
+chunks 180 → 18, suspicious headings 404 → 164; chunks 93,031 → 92,820;
+references unchanged (66,588: they come from `listBibl`, not the body).
+
+**Pitfall: a detector tuned by eye overfits what you looked at.** The first
+bibliography rule matched "Phan et al. (2024)."; the first equation rule
+folded "Lower Bound (L = 1)". Every rule has a negative test from a real
+heading or sentence (`tests/parse/test_cleanup.py`), and the checks on the
+page keep their own rules so they measure the fix instead of restating it.
+
 ## What to look at
 
 - `data/parsed/*/stats.json`:
@@ -237,7 +272,9 @@ Two things to keep in mind for Phase 4:
 | Mid-sentence cuts, broken citation markers | sentence-level packing and overlap |
 | References indexed, matching every query | references only in `references.jsonl` |
 | Hidden external calls from the parser | GROBID consolidation off |
-| Formula fragment taken as a heading | `MIN_HEADING_LETTERS` |
+| Formula fragment taken as a heading | `MIN_HEADING_LETTERS`, `cleanup.non_heading_kind` |
+| Caption label written twice | `tei.CAPTION_LABEL` strips GROBID's copy |
+| Bibliography lines left in a body section | `cleanup.cut_bibliography` |
 | Garbled long formulas as noise | `[equation]` placeholder above `formula_max_chars` |
 | Smoke run dirtying the committed manifest | `mark` skips after a `--limit` run |
 | Losing papers GROBID can't read | PyMuPDF fallback, flagged `parser=pymupdf` |

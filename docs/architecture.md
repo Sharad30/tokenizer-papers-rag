@@ -27,7 +27,7 @@ own, plus a `stats.json`. Every setting is in `config.yaml`.
  │ 2 PARSE + CHUNK          rag parse      │  grobid → structure → chunk → mark
  │   src/rag/parse/      (GROBID in Docker)│
  └────────────────────┬────────────────────┘
-                      │ data/parsed/chunks/chunks.jsonl  (93,031 chunks)
+                      │ data/parsed/chunks/chunks.jsonl  (92,820 chunks)
                       │ data/parsed/papers/  (sections, references)
                       ▼
  ┌─────────────────────────────────────────┐
@@ -117,17 +117,15 @@ answer evaluation that reads the chat transcripts.
   packs paragraphs within a section to about 300 tokens (max 448), with a
   40-token overlap of whole sentences.
 - **Code:** `src/rag/parse/`.
-- **Output:** `data/parsed/chunks/chunks.jsonl` (1,781 papers, 93,031
+- **Output:** `data/parsed/chunks/chunks.jsonl` (1,781 papers, 92,820
   chunks; the header `Title > Section` is stored separately) and
   `data/parsed/papers/references.jsonl` (never chunked).
-- **Decisions:** D-013 to D-021. **Note:** `notes/phase-2-parse.md`.
+- **Decisions:** D-013 to D-021, D-039. **Note:** `notes/phase-2-parse.md`.
 - **Look at:** `uv run rag inspect paper <record_id>`,
   `docs/figures/phase2-chunk-stats.md`, `phase2-dilution.md`.
-- **Known issues:**
-  - captions repeat their label;
-  - a formula is taken as a heading;
-  - reference-list text leaks into a Limitations chunk
-    (`arxiv:2507.23248v2#0034`).
+- **Known issues:** the clean-up rules (D-039) fixed repeated caption
+  labels, bibliography text in body sections and non-headings taken as
+  headings. The residue (76 + 18 + 164 chunks) is listed on the Parse page.
 
 ### 3. Eval set: what "right" means
 - **Does:** defines gold as a verbatim span in a named paper, mapped to
