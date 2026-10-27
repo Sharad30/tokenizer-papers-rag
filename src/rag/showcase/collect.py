@@ -219,6 +219,9 @@ class JudgedScore(StrictModel):
 class CollectOverview(StrictModel):
     candidates: int
     accepted: int
+    # Accepted records that are distinct papers: linked copies and earlier
+    # versions share ids (eval/identity.py). Phase 5 merges them properly.
+    distinct_accepted: int
     rejected: int
     downloaded: int  # accepted with a PDF
     indexed: int  # accepted and chunked into the index (Phase 2)
@@ -243,6 +246,7 @@ def overview(
     return CollectOverview(
         candidates=len(everything),
         accepted=len(accepted),
+        distinct_accepted=len(set(identity_groups(accepted).values())),
         rejected=len(rejected),
         downloaded=sum(r.download_status in DOWNLOADED for r in accepted),
         indexed=sum(bool(r.included_in_index) for r in accepted),

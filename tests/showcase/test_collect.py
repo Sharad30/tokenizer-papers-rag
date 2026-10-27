@@ -179,6 +179,7 @@ def test_overview_counts() -> None:
     view = collect.overview(ACCEPTED, REJECTED)
     assert (view.candidates, view.accepted, view.rejected) == (10, 3, 7)
     assert (view.downloaded, view.indexed) == (1, 1)
+    assert view.distinct_accepted == 2  # the ACL copy shares the arXiv paper's DOI
     by_source = {s.source: (s.candidates, s.accepted) for s in view.by_source}
     assert by_source == {"arxiv": (1, 1), "acl": (2, 1), "s2": (7, 1)}
     assert view.by_path["passing_mention"] == 5
