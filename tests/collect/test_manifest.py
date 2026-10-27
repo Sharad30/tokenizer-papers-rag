@@ -7,6 +7,7 @@ from rag.collect.manifest import (
     manifest_counts,
     read_manifest,
     read_rejected,
+    read_rejected_records,
     write_manifest,
 )
 from rag.collect.schemas import (
@@ -69,6 +70,21 @@ def test_rejects_go_to_gzipped_csv_without_abstracts(tmp_path: Path) -> None:
     assert [r["record_id"] for r in rows] == ["s2:zzz"]
     assert rows[0]["reason"] == "no_topic_term"
     assert "abstract" not in rows[0]
+
+
+def test_rejected_records_read_back_typed(tmp_path: Path) -> None:
+    reject = RECORDS[2].model_copy(
+        update={
+            "abstract": "Dropped.",
+            "authors": ["Ann Example, Jr.", "Bo Sample"],
+            "year": 2021,
+            "matched_terms": ["bpe", "tokenizer"],
+            "embedding_score": 0.5,
+        }
+    )
+    write_manifest([*RECORDS[:2], reject], tmp_path)
+    [loaded] = read_rejected_records(tmp_path)
+    assert loaded == reject.model_copy(update={"abstract": None})
 
 
 def test_csv_matches_json(tmp_path: Path) -> None:

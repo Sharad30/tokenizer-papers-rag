@@ -61,6 +61,26 @@ def read_rejected(out_dir: Path) -> list[dict[str, str]]:
     return list(csv.DictReader(io.StringIO(text)))
 
 
+def read_rejected_records(out_dir: Path) -> list[ManifestRecord]:
+    """The rejected records with their full types (abstract is None: not stored)."""
+    list_fields = {
+        name
+        for name, field in ManifestRecord.model_fields.items()
+        if getattr(field.annotation, "__origin__", None) is list
+    }
+
+    def typed(row: dict[str, str]) -> ManifestRecord:
+        values: dict[str, object] = {}
+        for key, value in row.items():
+            if key in list_fields:
+                values[key] = value.split(LIST_SEPARATOR) if value else []
+            elif value != "":  # the CSV writes None as an empty cell
+                values[key] = value
+        return ManifestRecord.model_validate(values)
+
+    return [typed(row) for row in read_rejected(out_dir)]
+
+
 def _fields(drop: Sequence[str] = ()) -> list[str]:
     return [f for f in ManifestRecord.model_fields if f not in drop]
 
