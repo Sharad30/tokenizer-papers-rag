@@ -76,7 +76,7 @@ The commit history is part of the deliverable: a reader should be able to follow
 ```
 
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, and `exp` for experiment runs and results.
-- Scopes: `collect`, `parse`, `dedup`, `index`, `retrieve`, `chat`, `eval`, `report`, `common`, `config`, `cli`, `probes`, `decisions`, `journal`, `notes`, `deps`.
+- Scopes: `collect`, `parse`, `dedup`, `index`, `retrieve`, `chat`, `eval`, `report`, `common`, `config`, `cli`, `probes`, `decisions`, `journal`, `notes`, `deps`, `showcase`, `ui`.
 - Summary says what the change does ("add", "fix", "replace"), not "update code" or "wip".
 - Body explains why, plus anything a reader can't see from the diff. Skip it only for trivial commits.
 - `exp` commits put the key numbers in the body, the config that changed, and the results file path.

@@ -490,3 +490,29 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: `probes/phase-7-gate.py`.
 - Tuned on eval set?: no
 - Revisit if: Phase 8 abstention precision/recall says so; if then tuned on the eval set, say so here.
+
+## D-037: Showcase UI in Streamlit
+- Date / Phase: 2026-10-27 / side track (showcase UI)
+- Status: proposed (Streamlit chosen by Sharad, 2026-10-27)
+- Context: Sharad wants one page per pipeline stage that shows its highlights (stats, how it decides, live examples), so an evaluator can follow the system and he can explain it without opening the code.
+- Options considered:
+  1. Streamlit. Pros: pages are plain Python scripts; built-in metrics, tables, charts; can host the chat later. Cons: a large dependency; reruns the whole script on every interaction (fine at this data size with caching).
+  2. Gradio. Pros: similar effort. Cons: built around one input → output demo; awkward for pages of stats and tables.
+  3. A generated static HTML page. Pros: nothing to install for the viewer. Cons: no interaction, no resampling of examples, no chat.
+- Choice: 1, in a `ui` dependency group. The core `rag` package never imports streamlit: page logic lives in `src/rag/showcase/` (plain, tested Python) and `ui/` pages only render it.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: the pages need layouts Streamlit can't do simply.
+
+## D-038: Showcase data is computed live from stage outputs, with a snapshot fallback
+- Date / Phase: 2026-10-27 / side track (showcase UI)
+- Status: proposed (live numbers and dynamic examples asked for by Sharad, 2026-10-27)
+- Context: every number must reflect the current data, and examples must be drawn from the data rather than hand-picked. But most stage outputs are gitignored, so a fresh clone can't show them without hours of pipeline runs. `stats.json` files can also go stale: `data/manifest/stats.json` predates `rag parse mark` rewriting the manifest.
+- Options considered:
+  1. Live first, snapshot fallback. Pages compute everything from the stage outputs when present; otherwise from a committed snapshot (`data/snapshot/<stage>.json`) written by `rag showcase snapshot` with the same functions, recording the sha256 of each source file. Pros: always current where data exists; still works on a fresh clone; staleness is detectable. Cons: a snapshot to regenerate.
+  2. Snapshot only. Pros: simplest. Cons: stale as soon as data changes.
+  3. Live only. Cons: a fresh clone shows nothing past Collect.
+- Choice: 1. Loaders are cached on each file's (path, mtime, size), so a changed file is re-read; display numbers never come from `stats.json`. Examples come from a pool per category, sampled with a seed the viewer can change.
+- Evidence: none yet: judgement call.
+- Tuned on eval set?: no
+- Revisit if: snapshots grow past a few MB.

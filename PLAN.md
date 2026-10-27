@@ -522,6 +522,12 @@ Pick 2–3 ★ ideas and take them from a small experiment to a finding. Choose 
 
 ---
 
+## Side track: showcase UI (added 2026-10-27)
+
+A Streamlit app (`make ui`) with one page per stage: its key numbers, how it decides, and examples drawn live from the data (D-037, D-038). Built page by page as Sharad reviews each stage, starting with Collect. Logic in `src/rag/showcase/` (tested), rendering in `ui/`. Numbers are computed from the stage outputs, never from `stats.json`; a committed snapshot (`rag showcase snapshot`) covers data a fresh clone doesn't have.
+
+---
+
 ## Rehearsal for live changes (no AI)
 
 Practise each of these once:
