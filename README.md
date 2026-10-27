@@ -49,7 +49,7 @@ One page per pipeline stage: its key numbers, how it decides, and examples
 sampled from the data ("Show others" draws new ones). Everything is computed
 from the stage outputs when a page loads, so it always matches the current
 data; a committed snapshot covers what a fresh clone doesn't have (D-038).
-Pages so far: the system diagram, Collect.
+Pages so far: the system diagram, Collect, Parse and chunk.
 
 ## Repository map
 
