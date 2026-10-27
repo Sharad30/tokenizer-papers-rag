@@ -160,6 +160,12 @@ parse:
     tei_coordinates: [p, s, head, figure, formula, biblStruct]
   fallback:
     enabled: true               # PyMuPDF when GROBID gives nothing (D-015)
+  clean:                        # text GROBID puts in the wrong place (D-039)
+    min_entry_sentences: 2      # bibliography pieces needed to cut a paragraph's tail
+    # An entry is ~4-5 sentences with ~2 flagged (author+year, venue), so a run
+    # of entries is ~40% flagged; 0.5 started cuts late and left entries behind.
+    min_entry_share: 0.3        # ... and their share of the tail
+    max_fragment_words: 15      # a short lead-in sentence before the cut goes too
   chunk:
     tokenizer_model: BAAI/bge-small-en-v1.5   # Phase 4 baseline embedder (D-016)
     embedding_max_tokens: 512

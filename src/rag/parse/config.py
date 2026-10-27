@@ -49,7 +49,19 @@ class ChunkConfig(StrictModel):
         return self
 
 
+class CleanConfig(StrictModel):
+    # Bibliography text GROBID left in body paragraphs (D-039): a paragraph's
+    # tail is cut when it holds at least this many entry pieces ...
+    min_entry_sentences: int = Field(ge=1)
+    # ... and they make up at least this share of the tail's sentences.
+    min_entry_share: float = Field(gt=0, le=1)
+    # A first sentence this short, right before the cut, is the end of an entry
+    # split by a column or page break, and goes too.
+    max_fragment_words: int = Field(ge=0)
+
+
 class ParseConfig(StrictModel):
     grobid: GrobidConfig
     fallback: FallbackConfig
+    clean: CleanConfig
     chunk: ChunkConfig

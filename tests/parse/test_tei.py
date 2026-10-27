@@ -3,10 +3,12 @@ from pathlib import Path
 
 import pytest
 
+from rag.parse.config import CleanConfig
 from rag.parse.schemas import Parser
 from rag.parse.tei import parse_references, parse_tei
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "tei" / "paper.tei.xml"
+CLEAN = CleanConfig(min_entry_sentences=2, min_entry_share=0.3, max_fragment_words=15)
 
 
 def body_tei(body: str) -> bytes:
@@ -29,7 +31,7 @@ def tei() -> bytes:
 
 @pytest.fixture
 def paper(tei):
-    return parse_tei(tei, "arxiv:0000.00001v1", "Manifest Title")
+    return parse_tei(tei, "arxiv:0000.00001v1", "Manifest Title", CLEAN)
 
 
 def test_title_comes_from_the_manifest(paper) -> None:
@@ -128,7 +130,7 @@ def test_references_never_become_sections(paper) -> None:
 
 def test_empty_body() -> None:
     tei = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader/><text><body/></text></TEI>'
-    paper = parse_tei(tei, "x", "T")
+    paper = parse_tei(tei, "x", "T", CLEAN)
     assert (paper.sections, paper.abstract, paper.tables) == ([], [], [])
 
 
@@ -137,14 +139,14 @@ def test_label_grobid_copied_into_the_caption_is_stripped() -> None:
     body = figure("Figure 2", "Figure2: BLEU by vocabulary size.") + figure(
         "Fig. 3", "Fig. 3. Merge counts."
     )
-    paper = parse_tei(body_tei(body), "x", "T", counts)
+    paper = parse_tei(body_tei(body), "x", "T", CLEAN, counts)
     got = [(f.label, f.caption) for f in paper.figures]
     assert got == [("Figure 2", "BLEU by vocabulary size."), ("Figure 3", "Merge counts.")]
     assert counts == {"captions_label_stripped": 2, "caption_label_replaced": 1}
 
 
 def test_the_captions_own_label_replaces_a_junk_head() -> None:
-    paper = parse_tei(body_tei(figure("'", "Figure1: Shorter sequences.")), "x", "T")
+    paper = parse_tei(body_tei(figure("'", "Figure1: Shorter sequences.")), "x", "T", CLEAN)
     assert (paper.figures[0].label, paper.figures[0].caption) == ("Figure 1", "Shorter sequences.")
 
 
@@ -152,7 +154,7 @@ def test_caption_prose_about_a_table_is_not_a_label() -> None:
     body = figure("Table 2", "Table 2 compares F1 scores.", table=True) + figure(
         "", "Fig. 10 and App. F.1 show examples."
     )
-    paper = parse_tei(body_tei(body), "x", "T")
+    paper = parse_tei(body_tei(body), "x", "T", CLEAN)
     assert (paper.tables[0].label, paper.tables[0].caption) == (
         "Table 2",
         "Table 2 compares F1 scores.",
@@ -161,3 +163,14 @@ def test_caption_prose_about_a_table_is_not_a_label() -> None:
         None,
         "Fig. 10 and App. F.1 show examples.",
     )
+
+
+def test_a_reference_list_in_the_body_is_skipped() -> None:
+    counts: Counter[str] = Counter()
+    body = (
+        '<div><head n="5">Conclusion</head><p>We are done.</p></div>'
+        "<div><head>References</head><p>Doe, J. 2016. Rare words.</p></div>"
+    )
+    paper = parse_tei(body_tei(body), "x", "T", CLEAN, counts)
+    assert [s.title for s in paper.sections] == ["Conclusion"]
+    assert counts["reference_divs_skipped"] == 1

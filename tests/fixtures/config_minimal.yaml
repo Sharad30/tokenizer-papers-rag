@@ -71,6 +71,10 @@ parse:
     tei_coordinates: [p, s]
   fallback:
     enabled: true
+  clean:
+    min_entry_sentences: 2
+    min_entry_share: 0.3
+    max_fragment_words: 15
   chunk:
     tokenizer_model: test/whitespace
     embedding_max_tokens: 40

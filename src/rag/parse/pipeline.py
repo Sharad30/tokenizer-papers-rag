@@ -198,7 +198,7 @@ def _structure_one(
         tei = (step_dir(config, "grobid") / f"{safe_name(record.record_id)}.tei.xml").read_bytes()
         # Prefixed so the clean-up counts sort together in stats.json.
         cleanup: Counter[str] = Counter()
-        paper = parse_tei(tei, record.record_id, record.title, cleanup)
+        paper = parse_tei(tei, record.record_id, record.title, config.parse.clean, cleanup)
         counts.update({f"cleanup.{k}": v for k, v in cleanup.items()})
         if any(s.paragraphs for s in paper.sections):
             return paper, parse_references(tei, record.record_id), status

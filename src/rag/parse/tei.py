@@ -21,6 +21,8 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Iterator
 
+from rag.parse.cleanup import cut_bibliography, is_reference_heading
+from rag.parse.config import CleanConfig
 from rag.parse.schemas import (
     Figure,
     Formula,
@@ -52,7 +54,11 @@ MIN_HEADING_LETTERS = 3
 
 
 def parse_tei(
-    tei: bytes, record_id: str, title: str, counts: Counter[str] | None = None
+    tei: bytes,
+    record_id: str,
+    title: str,
+    clean: CleanConfig,
+    counts: Counter[str] | None = None,
 ) -> StructuredPaper:
     """`counts`, if given, gets what the clean-up rules changed (for stats.json)."""
     counts = counts if counts is not None else Counter()
@@ -69,7 +75,7 @@ def parse_tei(
             if wrapper.get("type") not in SKIPPED_BACK_DIVS:
                 # Back matter wraps its sections: <div type="annex"><div><head>...
                 divs += wrapper.findall("tei:div", NS) or [wrapper]
-    sections = _sections(divs, formulas)
+    sections = _sections(divs, formulas, clean, counts)
     figures_parent = body if body is not None else ET.Element("none")
     return StructuredPaper(
         record_id=record_id,
@@ -95,13 +101,19 @@ def parse_references(tei: bytes, record_id: str) -> list[Reference]:
 # --- sections ----------------------------------------------------------------
 
 
-def _sections(divs: list[ET.Element], formulas: list[Formula]) -> list[Section]:
+def _sections(
+    divs: list[ET.Element], formulas: list[Formula], clean: CleanConfig, counts: Counter[str]
+) -> list[Section]:
     sections: list[Section] = []
     # Open headings by level, for building paths: {1: ("3", "Method"), 2: ("3.1", ...)}.
     open_heads: dict[int, tuple[str | None, str]] = {}
     for div in divs:
         head = div.find("tei:head", NS)
-        paragraphs = list(_div_paragraphs(div, formulas))
+        if head is not None and is_reference_heading(_text(head)):
+            # A reference list GROBID kept in the body: never indexed (D-021).
+            counts["reference_divs_skipped"] += 1
+            continue
+        paragraphs = cut_bibliography(list(_div_paragraphs(div, formulas)), clean, counts)
         if head is None or len(LETTER.findall(_text(head))) < MIN_HEADING_LETTERS:
             # GROBID starts a new headless div after a figure or page break,
             # and mislabels some fragments as headings; both continue the
