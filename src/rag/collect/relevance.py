@@ -20,6 +20,7 @@ from rag.collect.schemas import (
     Reason,
     RelevanceDecision,
 )
+from rag.common.schemas import StrictModel
 
 
 def _compile(terms: Sequence[str]) -> re.Pattern[str]:
@@ -59,6 +60,30 @@ class KeywordRules:
         if len(sentences) < self._min_sentences:
             return _keyword(Decision.REJECT, Reason.PASSING_MENTION, topic_matches)
         return _keyword(Decision.AMBIGUOUS, Reason.ABSTRACT_TERM_ONLY, topic_matches)
+
+    def trace(self, title: str, abstract: str) -> "RuleTrace":
+        """Every match `decide` looks at, with the same patterns, plus its decision."""
+        return RuleTrace(
+            title_terms=_found(self._title_terms, title),
+            exclude_terms=_found(self._exclude_terms, title),
+            topic_terms=_found(self._topic_terms, f"{title}\n{abstract}"),
+            sentences=[
+                (s, _found(self._topic_terms, s)) for s in _SENTENCE_END.split(abstract) if s
+            ],
+            min_sentences=self._min_sentences,
+            decision=self.decide(title, abstract),
+        )
+
+
+class RuleTrace(StrictModel):
+    """What the keyword rules saw in one paper, for showing why `decide` decided."""
+
+    title_terms: list[str]
+    exclude_terms: list[str]
+    topic_terms: list[str]  # in title or abstract
+    sentences: list[tuple[str, list[str]]]  # each abstract sentence and its topic terms
+    min_sentences: int
+    decision: RelevanceDecision
 
 
 # Sentence boundary: ., ! or ? followed by whitespace. Good enough for

@@ -89,6 +89,30 @@ def test_has_topic_term() -> None:
     assert not rules.has_topic_term("Parsing", "syntax trees")
 
 
+def test_trace_shows_what_decide_saw() -> None:
+    trace = rules.trace(
+        "Translation Quality Across Languages",
+        "Token fertility predicts quality. We measure fertility in 50 languages. Done.",
+    )
+    assert trace.title_terms == []
+    assert trace.exclude_terms == []
+    assert trace.topic_terms == ["fertility"]
+    assert [terms for _, terms in trace.sentences] == [["fertility"], ["fertility"], []]
+    assert trace.min_sentences == 2
+    assert trace.decision == rules.decide(
+        "Translation Quality Across Languages",
+        "Token fertility predicts quality. We measure fertility in 50 languages. Done.",
+    )
+
+
+def test_trace_of_an_excluded_title() -> None:
+    trace = rules.trace("A Visual Tokenizer for Image Generation", "")
+    assert trace.title_terms == ["tokenizer"]
+    assert trace.exclude_terms == ["visual tokenizer"]
+    assert trace.sentences == []
+    assert trace.decision.reason is Reason.OFF_TOPIC_TERM
+
+
 def fake_encoder(texts: list[str]) -> np.ndarray:
     """2-d vectors: [is about tokenization, is not]; rows L2-normalised."""
     rows = [[1.0, 0.0] if "token" in t.lower() else [0.0, 1.0] for t in texts]
