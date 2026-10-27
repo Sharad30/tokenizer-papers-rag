@@ -1,5 +1,7 @@
 import pytest
+from typer.testing import CliRunner
 
+from rag.cli import app
 from rag.collect.manifest import write_manifest
 from rag.collect.pipeline import RECORDS, step_dir
 from rag.collect.relevance import KeywordRules
@@ -262,3 +264,17 @@ def test_search_by_title_or_id() -> None:
     assert [r.record_id for r in collect.search(ACCEPTED, "S2:JUD", 5)] == ["s2:judged"]
     assert collect.search(ACCEPTED, "  ", 5) == []
     assert len(collect.search(ACCEPTED, "merges", 1)) == 1
+
+
+def test_snapshot_command_needs_live_data_then_writes(config: Config) -> None:
+    config_path = config.paths.manifest.parent.parent / "config.yaml"
+    run = ["--config", str(config_path), "showcase", "snapshot"]
+    refused = CliRunner().invoke(app, run)
+    assert refused.exit_code != 0
+    assert "rag collect filter" in refused.output
+    write_filtered(config)
+    result = CliRunner().invoke(app, run)
+    assert result.exit_code == 0, result.output
+    assert collect.load(config).abstracts_from == "live"
+    snapshot = (config.paths.snapshot / "collect.json").read_text(encoding="utf-8")
+    assert "s2:below" in snapshot

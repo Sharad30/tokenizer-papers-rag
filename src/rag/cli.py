@@ -20,6 +20,7 @@ from rag.eval import cli as eval_cli
 from rag.index import cli as index_cli
 from rag.parse import cli as parse_cli
 from rag.report.cli import report
+from rag.showcase import cli as showcase_cli
 
 app = typer.Typer(
     help="RAG over research papers on LLM tokenizers.",
@@ -59,6 +60,7 @@ app.add_typer(eval_cli.app, name="eval")
 app.command()(report)
 app.command()(chat)
 app.add_typer(inspection.app, name="inspect")
+app.add_typer(showcase_cli.app, name="showcase")
 app.add_typer(config_app, name="config")
 
 
