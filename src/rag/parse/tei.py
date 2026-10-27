@@ -18,6 +18,7 @@ authoritative and GROBID's header extraction can be wrong.
 
 import re
 import xml.etree.ElementTree as ET
+from collections import Counter
 from collections.abc import Iterator
 
 from rag.parse.schemas import (
@@ -39,6 +40,10 @@ XML_ID = "{http://www.w3.org/XML/1998/namespace}id"
 SKIPPED_BACK_DIVS = {"references", "acknowledgement", "availability", "funding"}
 ARXIV_PREFIX = re.compile(r"^arxiv:\s*", re.IGNORECASE)
 LABEL_TAIL = re.compile(r"\s*[:.]\s*$")  # "Table 1 :" -> "Table 1"
+# GROBID copies the printed label into most figure captions ("Figure2: BLEU by
+# vocabulary size."). The separator after the number is required, so a caption
+# that is prose about a table ("Table 2 compares ...") keeps its text.
+CAPTION_LABEL = re.compile(r"^(Figure|Fig\.?|Table)\s*([A-Z]?\d+[a-z]?)\s*[:.]\s*", re.IGNORECASE)
 WHITESPACE = re.compile(r"\s+")
 LETTER = re.compile(r"[^\W\d_]")
 # CRF GROBID sometimes labels a formula fragment as a heading ("←h m )." in
@@ -46,7 +51,11 @@ LETTER = re.compile(r"[^\W\d_]")
 MIN_HEADING_LETTERS = 3
 
 
-def parse_tei(tei: bytes, record_id: str, title: str) -> StructuredPaper:
+def parse_tei(
+    tei: bytes, record_id: str, title: str, counts: Counter[str] | None = None
+) -> StructuredPaper:
+    """`counts`, if given, gets what the clean-up rules changed (for stats.json)."""
+    counts = counts if counts is not None else Counter()
     root = ET.fromstring(tei)
     text = root.find("tei:text", NS)
     body = text.find("tei:body", NS) if text is not None else None
@@ -70,8 +79,10 @@ def parse_tei(tei: bytes, record_id: str, title: str) -> StructuredPaper:
         if abstract is not None
         else [],
         sections=sections,
-        tables=[_table(f) for f in figures_parent.iter(f"{{{TEI}}}figure") if _is_table(f)],
-        figures=[_figure(f) for f in figures_parent.iter(f"{{{TEI}}}figure") if not _is_table(f)],
+        tables=[_table(f, counts) for f in figures_parent.iter(f"{{{TEI}}}figure") if _is_table(f)],
+        figures=[
+            _figure(f, counts) for f in figures_parent.iter(f"{{{TEI}}}figure") if not _is_table(f)
+        ],
         formulas=formulas,
     )
 
@@ -182,15 +193,27 @@ def _is_table(figure: ET.Element) -> bool:
     return figure.get("type") == "table"
 
 
-def _caption_parts(figure: ET.Element) -> tuple[str | None, str]:
+def _caption_parts(figure: ET.Element, counts: Counter[str]) -> tuple[str | None, str]:
     head = figure.find("tei:head", NS)
     desc = figure.find("tei:figDesc", NS)
     label = LABEL_TAIL.sub("", _clean(_text(head))) if head is not None else ""
-    return (label or None), (_clean(_text(desc)) if desc is not None else "")
+    caption = _clean(_text(desc)) if desc is not None else ""
+    printed = CAPTION_LABEL.match(caption)
+    if printed:
+        # The chunker adds the label back once. The caption's own label wins
+        # over <head>, which is sometimes junk ("'", "Figure 3 :Figure 4").
+        caption = caption[printed.end() :]
+        kind = "Table" if printed.group(1).lower() == "table" else "Figure"
+        printed_label = f"{kind} {printed.group(2)}"
+        counts["captions_label_stripped"] += 1
+        if label and label != printed_label:
+            counts["caption_label_replaced"] += 1
+        label = printed_label
+    return (label or None), caption
 
 
-def _table(figure: ET.Element) -> Table:
-    label, caption = _caption_parts(figure)
+def _table(figure: ET.Element, counts: Counter[str]) -> Table:
+    label, caption = _caption_parts(figure, counts)
     rows = [
         [_clean(_text(cell)) for cell in row.iterfind("tei:cell", NS)]
         for row in figure.iterfind("tei:table/tei:row", NS)
@@ -204,8 +227,8 @@ def _table(figure: ET.Element) -> Table:
     )
 
 
-def _figure(figure: ET.Element) -> Figure:
-    label, caption = _caption_parts(figure)
+def _figure(figure: ET.Element, counts: Counter[str]) -> Figure:
+    label, caption = _caption_parts(figure, counts)
     return Figure(id=figure.get(XML_ID) or "", label=label, caption=caption, page=_page(figure))
 
 

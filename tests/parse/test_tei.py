@@ -1,3 +1,4 @@
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,19 @@ from rag.parse.schemas import Parser
 from rag.parse.tei import parse_references, parse_tei
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "tei" / "paper.tei.xml"
+
+
+def body_tei(body: str) -> bytes:
+    """A minimal TEI document around a <body> fragment."""
+    return (
+        '<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader/>'
+        f"<text><body>{body}</body></text></TEI>"
+    ).encode()
+
+
+def figure(head: str, desc: str, table: bool = False) -> str:
+    kind = ' type="table"' if table else ""
+    return f"<figure{kind}><head>{head}</head><figDesc>{desc}</figDesc></figure>"
 
 
 @pytest.fixture
@@ -116,3 +130,34 @@ def test_empty_body() -> None:
     tei = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader/><text><body/></text></TEI>'
     paper = parse_tei(tei, "x", "T")
     assert (paper.sections, paper.abstract, paper.tables) == ([], [], [])
+
+
+def test_label_grobid_copied_into_the_caption_is_stripped() -> None:
+    counts: Counter[str] = Counter()
+    body = figure("Figure 2", "Figure2: BLEU by vocabulary size.") + figure(
+        "Fig. 3", "Fig. 3. Merge counts."
+    )
+    paper = parse_tei(body_tei(body), "x", "T", counts)
+    got = [(f.label, f.caption) for f in paper.figures]
+    assert got == [("Figure 2", "BLEU by vocabulary size."), ("Figure 3", "Merge counts.")]
+    assert counts == {"captions_label_stripped": 2, "caption_label_replaced": 1}
+
+
+def test_the_captions_own_label_replaces_a_junk_head() -> None:
+    paper = parse_tei(body_tei(figure("'", "Figure1: Shorter sequences.")), "x", "T")
+    assert (paper.figures[0].label, paper.figures[0].caption) == ("Figure 1", "Shorter sequences.")
+
+
+def test_caption_prose_about_a_table_is_not_a_label() -> None:
+    body = figure("Table 2", "Table 2 compares F1 scores.", table=True) + figure(
+        "", "Fig. 10 and App. F.1 show examples."
+    )
+    paper = parse_tei(body_tei(body), "x", "T")
+    assert (paper.tables[0].label, paper.tables[0].caption) == (
+        "Table 2",
+        "Table 2 compares F1 scores.",
+    )
+    assert (paper.figures[0].label, paper.figures[0].caption) == (
+        None,
+        "Fig. 10 and App. F.1 show examples.",
+    )

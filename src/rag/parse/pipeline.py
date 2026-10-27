@@ -164,7 +164,7 @@ def structure(config: Config, limit: int | None = None) -> None:
         references: list[Reference] = []
         for status in read_jsonl(src / RECORDS, ParseStatus)[:limit]:
             record = manifest[status.record_id]
-            paper, refs, status = _structure_one(config, record, status)
+            paper, refs, status = _structure_one(config, record, status, counts)
             statuses.append(status)
             counts[f"outcome.{status.outcome}"] += 1
             if paper is None:
@@ -189,14 +189,17 @@ def structure(config: Config, limit: int | None = None) -> None:
 
 
 def _structure_one(
-    config: Config, record: ManifestRecord, status: ParseStatus
+    config: Config, record: ManifestRecord, status: ParseStatus, counts: Counter[str]
 ) -> tuple[StructuredPaper | None, list[Reference], ParseStatus]:
     if status.outcome is ParseOutcome.NO_PDF:
         return None, [], status
     reason = status.detail
     if status.outcome is ParseOutcome.GROBID:
         tei = (step_dir(config, "grobid") / f"{safe_name(record.record_id)}.tei.xml").read_bytes()
-        paper = parse_tei(tei, record.record_id, record.title)
+        # Prefixed so the clean-up counts sort together in stats.json.
+        cleanup: Counter[str] = Counter()
+        paper = parse_tei(tei, record.record_id, record.title, cleanup)
+        counts.update({f"cleanup.{k}": v for k, v in cleanup.items()})
         if any(s.paragraphs for s in paper.sections):
             return paper, parse_references(tei, record.record_id), status
         reason = "grobid TEI has no body text"
