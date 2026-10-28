@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from rag.eval.config import SilverConfig
 from rag.eval.silver import make_question, parse_reply, sample_chunks, word_overlap
 from rag.eval.spans import ChunkTexts
@@ -82,4 +84,18 @@ def test_questions_that_point_at_their_source_are_rejected() -> None:
             "evidence": "We train BPE with 32k merges.",
         }
     )
+    assert make_question(1, CHUNK, reply, texts, CFG)[1] == "refers_to_source"
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What is the name of the tokenizer proposed in the paper?",
+        "What factor influenced adaptation quality in the study?",
+        "How does the proposed metric differ from perplexity?",
+    ],
+)
+def test_questions_about_an_unnamed_paper_are_rejected(question: str) -> None:
+    texts = ChunkTexts([CHUNK])
+    reply = json.dumps({"question": question, "evidence": "We train BPE with 32k merges."})
     assert make_question(1, CHUNK, reply, texts, CFG)[1] == "refers_to_source"

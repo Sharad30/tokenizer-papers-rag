@@ -46,7 +46,8 @@ JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
 # A question that points at the passage it came from can't be asked of a
 # search engine: "the first listed metric", "according to the table".
 SOURCE_REFERENCE = re.compile(
-    r"\b(?:the passage|this (?:paper|study|work)|the authors|the table|the figure"
+    r"\b(?:the passage|(?:the|this) (?:paper|study|work)|the proposed|the authors"
+    r"|the table|the figure"
     r"|the results|according to|mentioned|listed|above|below)\b",
     re.IGNORECASE,
 )

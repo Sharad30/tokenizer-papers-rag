@@ -15,7 +15,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from rag.eval.config import EvalConfig
-from rag.eval.schemas import Question, QuestionType
+from rag.eval.schemas import Origin, Question, QuestionType
 from rag.eval.spans import ChunkTexts, elsewhere, map_span, normalise, suggest
 
 # A sentence end followed by a new sentence: such a span may straddle two
@@ -75,9 +75,13 @@ def validate(
         _check_gold(q, texts, indexed, config, report)
     _check_conversations(questions, report)
     report.mix = _mix(questions, config)
+    # The mix minimums are PLAN's bar for the gold set. A silver set is
+    # lookup-only by construction (D-044), so a shortfall there is expected.
+    silver = bool(questions) and all(q.origin == Origin.SILVER_LLM for q in questions)
     for what, have, minimum in report.mix:
         if have < minimum:
-            report.errors.append(f"mix: {what} has {have}, needs at least {minimum}")
+            message = f"mix: {what} has {have}, needs at least {minimum}"
+            (report.warnings if silver else report.errors).append(message)
     return report
 
 

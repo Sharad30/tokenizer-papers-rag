@@ -145,3 +145,12 @@ def test_warnings_for_long_spans_sections_and_duplicates(
     assert "q1 gold 1: span also in p:a-copy" in joined
     assert "q1 gold 1: section 'Results'" in joined
     assert "q2 gold 1: long or multi-sentence span" in joined
+
+
+def test_mix_shortfall_is_a_warning_for_a_silver_set(
+    tmp_path: Path, texts: ChunkTexts, eval_config: EvalConfig
+) -> None:
+    rows = [dict(row, origin="silver_llm") for row in lines()[:3]]
+    report = run(tmp_path, rows, texts, eval_config)
+    assert report.errors == []
+    assert "mix: unanswerable has 0, needs at least 1" in report.warnings
