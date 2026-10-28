@@ -11,6 +11,7 @@ paths:
   chat: out/chat
   prompts: out/prompts
   snapshot: out/snapshot
+  probes: out/probes
 logging:
   level: DEBUG
 corpus:

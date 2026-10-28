@@ -74,3 +74,14 @@ def test_paired_diff_cancels_shared_variation() -> None:
     b = [x + 0.1 for x in a]
     mean, low, high = paired_bootstrap_diff(b, a, samples=500, seed=0)
     assert (mean, low, high) == pytest.approx((0.1, 0.1, 0.1))
+
+
+def test_copy_duplicates_count_other_records_of_the_same_paper_only() -> None:
+    from rag.eval.metrics import copy_duplicate_rate_at_k
+
+    groups = {"acl:x": "g", "arxiv:x": "g"}
+    # arxiv:x after acl:x is a copy; a second acl:x chunk is not; acl:x again
+    # after arxiv:x is (another record of g appeared before).
+    assert copy_duplicate_rate_at_k(["acl:x", "acl:x", "arxiv:x", "y"], groups, 4) == 0.25
+    assert copy_duplicate_rate_at_k(["arxiv:x", "acl:x", "acl:x"], groups, 3) == 2 / 3
+    assert copy_duplicate_rate_at_k([], groups, 5) == 0.0

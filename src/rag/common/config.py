@@ -43,6 +43,7 @@ class PathsConfig(StrictModel):
     chat: Path
     prompts: Path
     snapshot: Path
+    probes: Path
 
     def resolved_against(self, base: Path) -> "PathsConfig":
         # Resolving against the config file (not the current directory) means

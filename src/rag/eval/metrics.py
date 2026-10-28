@@ -52,6 +52,28 @@ def duplicate_rate_at_k(ranked_papers: Sequence[str], k: int) -> float:
     return (len(top) - len(set(top))) / len(top)
 
 
+def copy_duplicate_rate_at_k(
+    ranked_records: Sequence[str], groups: dict[str, str], k: int
+) -> float:
+    """Fraction of the top-k slots whose paper already appeared higher as another record.
+
+    Unlike dup@k, a second chunk of the same record doesn't count: this
+    isolates what versions and venue copies add, the part Phase 5's merging
+    removes. Divided by the slots returned; 0 when nothing was returned.
+    """
+    top = ranked_records[:k]
+    if not top:
+        return 0.0
+    seen: dict[str, set[str]] = {}
+    copies = 0
+    for record in top:
+        group = groups.get(record, record)
+        if seen.get(group, set()) - {record}:
+            copies += 1
+        seen.setdefault(group, set()).add(record)
+    return copies / len(top)
+
+
 # TODO(sharad): Phase 4 "You do": add recall at 10 here (span-level, like
 # span_recall_at_k), a test with a hand-computed example in
 # tests/eval/test_metrics.py, and report it from the harness

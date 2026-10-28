@@ -10,6 +10,7 @@ from rag.common.cli import LimitOption, get_config
 from rag.common.config import Config
 from rag.eval import find as find_mod
 from rag.eval import validate as validate_mod
+from rag.eval.ablation import run_ablation
 from rag.eval.spans import ChunkTexts
 from rag.parse.pipeline import CHUNKS, step_dir
 
@@ -98,3 +99,18 @@ def run(
         rewriter = (make_llm(config.chat), prompt)
     out = run_eval(config, name, chosen, file, limit, rewriter=rewriter)
     typer.echo(f"Wrote {out}" if out else "No questions yet: nothing scored, nothing written.")
+
+
+@app.command()
+def ablate(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Option(help="Which ablation in eval.ablations")] = "dedup",
+) -> None:
+    """Score each configured condition on the probe queries (and the eval set, if any)."""
+    config = get_config(ctx)
+    if name not in config.eval.ablations:
+        typer.echo(f"No ablation {name!r} in config eval.ablations", err=True)
+        raise typer.Exit(1)
+    out = run_ablation(config, name)
+    typer.echo(out.with_suffix(".md").read_text(encoding="utf-8"))
+    typer.echo(f"Results: {out}")

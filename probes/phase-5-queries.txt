@@ -1,0 +1,45 @@
+# Phase 5 probe queries: dup@5 for the dedup ablation (`rag eval ablate --name dedup`).
+# Written for the probe, not eval gold: no answers, nothing tuned on them.
+# Topics chosen because the corpus holds copies (arXiv versions, ACL + arXiv)
+# or surveys of them; a few are general so the set isn't only duplicate bait.
+# One query per line; lines starting with # are ignored.
+What is byte pair encoding and how does it build a vocabulary?
+How does BPE-dropout regularize subword segmentation?
+How does subword regularization with a unigram language model work?
+What is WordPiece tokenization and how is it made fast?
+How does SentencePiece handle whitespace and raw text?
+Why is BPE suboptimal for language model pretraining?
+How do character-level models compare with subword models for machine translation?
+How can a subword NMT system be finetuned into a character-level model?
+What are byte-level models like ByT5 and what do they cost?
+How does CANINE work without an explicit tokenizer?
+What is tokenizer fertility and why does it matter?
+Do tokenizers make some languages more expensive to process than others?
+How does vocabulary size affect translation quality?
+How are numbers tokenized and does it affect arithmetic?
+What are glitch tokens or under-trained tokens in large language models?
+How can a pretrained model's tokenizer be replaced or adapted to a new vocabulary?
+How are embeddings for new tokens initialised when extending a vocabulary?
+How does morphology-aware tokenization help morphologically rich languages?
+Does derivational morphology improve how BERT interprets complex words?
+How do tokenizers handle code compared with natural language?
+What is the token tax for low-resource languages?
+How does tokenization affect cross-lingual transfer in multilingual models?
+What is parity-aware BPE?
+How can tokenization be made lossless and parallel for long contexts?
+How does dynamic or adaptive tokenization change sequence length?
+What is the relationship between tokenization and compression?
+How does the choice of tokenizer affect LLM training outcomes?
+How do speech or audio tokenizers align with text tokens?
+How are Chinese text and word segmentation handled by tokenizers?
+What is the history of open-vocabulary modelling and tokenization in NLP?
+How are images or other modalities discretized into tokens for multimodal LLMs?
+What tokenization problems arise for Arabic script and root-pattern morphology?
+How does Ge'ez script morphology affect subword construction?
+How well does perplexity predict finetuning performance across tokenizers?
+What is the effect of tokenization on character-level understanding in LLMs?
+How do hard monotonic attention models perform character-level transduction?
+How is tokenization formalised as a finite-state transduction?
+Is tokenization a solved problem?
+How do tokenizer choices affect fairness across languages?
+What tokenization strategies work for event sequences or time series?

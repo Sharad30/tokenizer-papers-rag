@@ -16,6 +16,7 @@ paths:
   chat: data/chat          # Phase 7: chat transcripts, one JSONL per session (gitignored)
   prompts: prompts         # Phase 7: system prompts as editable files (committed)
   snapshot: data/snapshot  # showcase UI: data a fresh clone lacks (committed; D-038)
+  probes: probes           # concept probes and their query lists (committed)
 
 logging:
   level: INFO              # DEBUG | INFO | WARNING | ERROR
@@ -232,6 +233,33 @@ eval:
   bootstrap:
     samples: 1000           # resamples of the question set for 95% intervals
     seed: 0
+  ablations:
+    dedup:                    # Phase 5 table (D-041); `rag eval ablate --name dedup`
+      queries_file: phase-5-queries.txt   # under paths.probes; not gold
+      conditions:
+        - name: none
+          label: No handling (Phase 4 baseline)
+          dedup: {enabled: false, canonical_only: false, per_work_cap: 0, survey_demotion: false}
+        - name: exact_ids
+          label: Exact-ID merge only
+          steps: [ids]
+          dedup: {enabled: true, canonical_only: true, per_work_cap: 0, survey_demotion: false}
+        - name: fuzzy_minhash
+          label: + fuzzy title + MinHash merge
+          steps: [ids, title, minhash]
+          dedup: {enabled: true, canonical_only: true, per_work_cap: 0, survey_demotion: false}
+        - name: cap
+          label: + per-work cap 1
+          steps: [ids, title, minhash]
+          dedup: {enabled: true, canonical_only: true, per_work_cap: 1, survey_demotion: false}
+        - name: survey
+          label: + survey demotion
+          steps: [ids, title, minhash]
+          dedup: {enabled: true, canonical_only: true, per_work_cap: 1, survey_demotion: true}
+        - name: mmr
+          label: + MMR (lambda 0.7)
+          steps: [ids, title, minhash]
+          dedup: {enabled: true, canonical_only: true, per_work_cap: 1, survey_demotion: true, mmr_lambda: 0.7}
 
 index:
   bm25:
