@@ -45,7 +45,7 @@ smoke:  ## Run the whole pipeline on a tiny --limit, in .smoke/
 	$(SMOKE_RAG) config show > /dev/null
 	$(SMOKE_RAG) collect all --limit $(SMOKE_LIMIT)
 	$(SMOKE_RAG) parse all --limit $(SMOKE_LIMIT)
-	$(SMOKE_RAG) dedup --limit $(SMOKE_LIMIT)
+	$(SMOKE_RAG) dedup run --limit $(SMOKE_LIMIT)
 	$(SMOKE_RAG) index all --limit $(SMOKE_LIMIT)
 	$(SMOKE_RAG) eval validate
 	$(SMOKE_RAG) eval run --name smoke --limit $(SMOKE_LIMIT)

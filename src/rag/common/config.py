@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from rag.chat.config import ChatConfig
 from rag.collect.config import CollectConfig
 from rag.common.schemas import StrictModel
+from rag.dedup.config import DedupConfig
 from rag.eval.config import EvalConfig
 from rag.index.config import IndexConfig
 from rag.parse.config import ParseConfig
@@ -66,6 +67,7 @@ class Config(StrictModel):
     corpus: CorpusConfig
     collect: CollectConfig
     parse: ParseConfig
+    dedup: DedupConfig
     eval: EvalConfig
     index: IndexConfig
     retrieve: RetrieveConfig

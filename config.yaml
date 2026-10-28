@@ -176,6 +176,27 @@ parse:
     table_max_rows_per_chunk: 25
     captions: own_chunk
 
+dedup:
+  # Phase 5 identity resolution (D-040). Thresholds come from the Jaccard and
+  # title-ratio distributions of ID-linked vs same-author unlinked pairs
+  # (probes/phase-5-minhash.py), not from labelled pairs or the eval set.
+  seed: 13
+  steps: [ids, title, minhash]
+  author_overlap_min: 0.5     # every fuzzy merge needs shared authors
+  title:
+    min_ratio: 97             # near-exact title + shared authors: same paper
+    review_ratio: 85          # 85-97: only with text evidence (follow-ups look like this)
+    review_min_jaccard: 0.2   # revised versions share 0.2-0.5; follow-ups ~0.02
+    year_gap_max: 2           # arXiv preprint -> venue version
+  minhash:
+    shingle_words: 5
+    num_perm: 256
+    bands: 64                 # 64 x 4: candidate chance 0.98 at Jaccard 0.5, 0.10 at 0.2
+    rows: 4
+    min_jaccard: 0.5          # no unlinked same-author pair above this was a different paper
+  cluster_floor: 0.2          # chain guard: evidence needed between every pair of units
+  canonical_order: [acl, arxiv, s2]   # venue version first, then latest arXiv version
+
 eval:
   questions_file: questions.jsonl   # Sharad's questions, under paths.eval
   # PLAN's mix (about 36 questions), as minimums per type (D-025).

@@ -84,6 +84,23 @@ parse:
     formula_max_chars: 20
     table_max_rows_per_chunk: 2
     captions: own_chunk
+dedup:
+  seed: 0
+  steps: [ids, title, minhash]
+  author_overlap_min: 0.5
+  title:
+    min_ratio: 97
+    review_ratio: 85
+    review_min_jaccard: 0.2
+    year_gap_max: 2
+  minhash:
+    shingle_words: 3
+    num_perm: 64
+    bands: 16
+    rows: 4
+    min_jaccard: 0.5
+  cluster_floor: 0.2
+  canonical_order: [acl, arxiv, s2]
 eval:
   questions_file: questions.jsonl
   mix_min:
