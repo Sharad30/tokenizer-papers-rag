@@ -43,6 +43,13 @@ STOPWORDS = frozenset(
     "used use using based".split()
 )
 JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+# A question that points at the passage it came from can't be asked of a
+# search engine: "the first listed metric", "according to the table".
+SOURCE_REFERENCE = re.compile(
+    r"\b(?:the passage|this (?:paper|study|work)|the authors|the table|the figure"
+    r"|the results|according to|mentioned|listed|above|below)\b",
+    re.IGNORECASE,
+)
 
 
 class SilverMeta(StrictModel):
@@ -111,6 +118,8 @@ def make_question(
     question, evidence = parsed
     if not question.endswith("?") or len(question.split()) < config.min_question_words:
         return None, "not_a_question"
+    if SOURCE_REFERENCE.search(question):
+        return None, "refers_to_source"
     if not evidence or len(evidence.split()) > config.max_evidence_words:
         return None, "evidence_length"
     gold = GoldSpan(record_id=chunk.record_id, span=evidence)

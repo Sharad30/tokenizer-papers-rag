@@ -72,3 +72,14 @@ def test_word_overlap_counts_content_words_found_in_the_passage() -> None:
     # content words: many, bpe, merges; "bpe" and "merges" are in the passage
     assert word_overlap("How many BPE merges?", passage) == 2 / 3
     assert word_overlap("What vocabulary size for Unigram?", passage) == 0.0
+
+
+def test_questions_that_point_at_their_source_are_rejected() -> None:
+    texts = ChunkTexts([CHUNK])
+    reply = json.dumps(
+        {
+            "question": "How many merges are listed in the table?",
+            "evidence": "We train BPE with 32k merges.",
+        }
+    )
+    assert make_question(1, CHUNK, reply, texts, CFG)[1] == "refers_to_source"
