@@ -13,9 +13,9 @@ _JOINERS = re.compile(r"[-._]")
 STOPWORDS = {"en": frozenset(STOPWORDS_EN), "none": frozenset()}
 
 
-def chunk_text(chunk: Chunk, with_header: bool) -> str:
+def chunk_text(chunk: Chunk, with_header: bool, separator: str = "\n") -> str:
     """The chunk as an index sees it: optionally "Title > Section" first."""
-    return f"{chunk.header}\n{chunk.text}" if with_header else chunk.text
+    return f"{chunk.header}{separator}{chunk.text}" if with_header else chunk.text
 
 
 def terms(text: str, stopwords: frozenset[str], split_compounds: bool) -> list[str]:

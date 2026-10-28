@@ -6,6 +6,10 @@ a few milliseconds. No approximate index is needed at this scale.
 """
 
 import json
+import logging
+import subprocess
+import tempfile
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Protocol
 
@@ -14,6 +18,8 @@ import numpy as np
 from rag.index.config import DenseConfig
 from rag.parse.schemas import Chunk
 from rag.retrieve.text import chunk_text
+
+log = logging.getLogger(__name__)
 
 EMBEDDINGS = "embeddings.npy"
 CHUNK_IDS = "chunk_ids.json"
@@ -63,6 +69,91 @@ class SentenceTransformerEncoder:
         return vectors.astype(np.float32, copy=False)
 
 
+class Specter2Encoder:
+    """SPECTER2 with its ad-hoc query adapter for queries and the proximity
+    adapter for documents, run as a separate process (`specter2_worker.py`)
+    in an isolated environment (D-043).
+
+    Starting that process takes ~30 s, so queries are encoded in batches
+    with `encode_queries` and cached; `encode_query` on an unseen query
+    starts the process for that one query.
+    """
+
+    def __init__(
+        self, config: DenseConfig, run: Callable[[list[str], list[str]], None] | None = None
+    ) -> None:
+        if not (config.query_adapter and config.document_adapter):
+            raise ValueError("specter2 needs query_adapter and document_adapter")
+        self._config = config
+        self._run = run or _run_isolated
+        self._cache: dict[str, np.ndarray] = {}
+        self.encode_ms: dict[str, float] = {}  # per query, measured inside the worker
+        self.truncated = 0  # documents longer than max_length, in the last encode_documents
+
+    def encode_documents(self, texts: list[str]) -> np.ndarray:
+        vectors, report = self._call(texts, self._config.document_adapter, one_at_a_time=False)
+        self.truncated = report["truncated"]
+        if self.truncated:
+            log.warning("specter2: %d of %d documents truncated", self.truncated, len(texts))
+        return vectors
+
+    def encode_queries(self, texts: Sequence[str]) -> None:
+        """Encode queries in one process; each is timed on its own (latency)."""
+        todo = [t for t in dict.fromkeys(texts) if t not in self._cache]
+        if not todo:
+            return
+        vectors, report = self._call(todo, self._config.query_adapter, one_at_a_time=True)
+        for text, vector, ms in zip(todo, vectors, report["encode_ms"], strict=True):
+            self._cache[text] = vector
+            self.encode_ms[text] = ms
+
+    def encode_query(self, text: str) -> np.ndarray:
+        if text not in self._cache:
+            self.encode_queries([text])
+        return self._cache[text]
+
+    def _call(self, texts: list[str], adapter: str | None, one_at_a_time: bool):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "in.jsonl").write_text(
+                "".join(json.dumps({"text": t}) + "\n" for t in texts), encoding="utf-8"
+            )
+            args = [
+                "--model", self._config.model,
+                "--adapter", str(adapter),
+                "--input", str(folder / "in.jsonl"),
+                "--output", str(folder / "out.npy"),
+                "--report", str(folder / "report.json"),
+                "--max-length", str(self._config.max_length or 512),
+                "--batch-size", str(self._config.batch_size),
+            ]  # fmt: skip
+            if one_at_a_time:
+                args.append("--one-at-a-time")
+            self._run(self._config.isolated_with, args)
+            vectors = np.load(folder / "out.npy")
+            report = json.loads((folder / "report.json").read_text(encoding="utf-8"))
+        # Unit length, so scoring stays a dot product (D-028). The model card
+        # ranks by L2 distance; the Phase 6 probe measures the difference.
+        vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        return vectors.astype(np.float32), report
+
+
+WORKER = Path(__file__).with_name("specter2_worker.py")
+
+
+def _run_isolated(packages: list[str], args: list[str]) -> None:
+    command = ["uv", "run", "--isolated", "--no-project"]
+    for package in packages:
+        command += ["--with", package]
+    subprocess.run([*command, "python", str(WORKER), *args], check=True)
+
+
+def make_encoder(config: DenseConfig, show_progress: bool = False) -> Encoder:
+    if config.kind == "specter2":
+        return Specter2Encoder(config)
+    return SentenceTransformerEncoder(config, show_progress=show_progress)
+
+
 def model_slug(model: str) -> str:
     """Index folder name per model, so Phase 6 models sit side by side."""
     return model.rsplit("/", 1)[-1]
@@ -75,7 +166,7 @@ class DenseIndex:
 
     @classmethod
     def build(cls, chunks: list[Chunk], config: DenseConfig, encoder: Encoder) -> "DenseIndex":
-        texts = [chunk_text(c, config.prepend_header) for c in chunks]
+        texts = [chunk_text(c, config.prepend_header, config.header_separator) for c in chunks]
         return cls(encoder.encode_documents(texts), [c.chunk_id for c in chunks])
 
     def scores(self, query_vector: np.ndarray) -> np.ndarray:

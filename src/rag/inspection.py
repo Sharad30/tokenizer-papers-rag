@@ -48,6 +48,9 @@ def query(
     mode: Annotated[
         str | None, typer.Option(help="bm25 | dense | hybrid (default: retrieve.default_mode)")
     ] = None,
+    dense: Annotated[
+        str | None, typer.Option(help="One of index.dense_models (default: index.dense_model)")
+    ] = None,
 ) -> None:
     """Rank chunks for a query with BM25, dense and fused scores side by side."""
     from rag.retrieve.retriever import Retriever
@@ -58,5 +61,5 @@ def query(
     if mode not in ("bm25", "dense", "hybrid"):
         raise typer.BadParameter(f"unknown mode {mode!r}", param_hint="--mode")
     # Load both indexes even for one mode, so the other's rank shows alongside.
-    retriever = Retriever.load(config, {"hybrid"})
+    retriever = Retriever.load(config, {"hybrid"}, dense=dense)
     typer.echo(render_hits(text, mode, retriever.retrieve(text, k=k, mode=mode)))

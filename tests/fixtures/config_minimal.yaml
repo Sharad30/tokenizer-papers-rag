@@ -140,12 +140,14 @@ index:
     include_header: true
     stopwords: en
     split_compounds: true
-  dense:
-    model: test/fake
-    query_prompt: "query: "
-    prepend_header: true
-    batch_size: 2
-    device: cpu
+  dense_model: small
+  dense_models:
+    small:
+      model: test/fake
+      query_prompt: "query: "
+      prepend_header: true
+      batch_size: 2
+      device: cpu
 retrieve:
   default_mode: hybrid
   default_k: 3

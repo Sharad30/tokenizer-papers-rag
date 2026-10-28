@@ -19,7 +19,7 @@ from rag.parse.schemas import Chunk
 from rag.retrieve.bm25 import Bm25Index
 from rag.retrieve.collapse import WorkMap, WorksUnavailable, collapse
 from rag.retrieve.config import DedupSettings, Mode, RetrieveConfig
-from rag.retrieve.dense import DenseIndex, Encoder, SentenceTransformerEncoder, model_slug
+from rag.retrieve.dense import DenseIndex, Encoder, make_encoder, model_slug
 from rag.retrieve.fusion import rrf
 from rag.retrieve.ranking import top_k
 from rag.retrieve.schemas import Hit, IndexMeta, Retrieval
@@ -38,8 +38,10 @@ def bm25_dir(config: Config) -> Path:
     return config.paths.index / "bm25"
 
 
-def dense_dir(config: Config) -> Path:
-    return config.paths.index / "dense" / model_slug(config.index.dense.model)
+def dense_dir(config: Config, model: str | None = None) -> Path:
+    """The folder of a dense model's index: the deployed one, or `model` by name."""
+    dense = config.index.dense_models[model] if model else config.index.dense
+    return config.paths.index / "dense" / model_slug(dense.model)
 
 
 class Retriever:
@@ -72,26 +74,37 @@ class Retriever:
         return Retriever(self.chunks, config, self.bm25, self.dense, self.encoder, works)
 
     @classmethod
-    def load(cls, config: Config, modes: set[str], encoder: Encoder | None = None) -> "Retriever":
-        """Load the indexes `modes` need, after checking each against chunks.jsonl and config."""
+    def load(
+        cls,
+        config: Config,
+        modes: set[str],
+        encoder: Encoder | None = None,
+        dense: str | None = None,
+    ) -> "Retriever":
+        """Load the indexes `modes` need, after checking each against chunks.jsonl and config.
+
+        `dense` names one of `index.dense_models` (default: the deployed one).
+        """
         chunks_path = step_dir(config, "chunk") / CHUNKS
         sha = file_sha256(chunks_path)
         needed = set().union(*(NEEDS[m] for m in modes))
-        bm25 = dense = None
+        bm25 = dense_index = None
         if "bm25" in needed:
             _check(bm25_dir(config), sha, config.index.bm25.model_dump(mode="json"))
             bm25 = Bm25Index.load(bm25_dir(config), config.index.bm25)
         if "dense" in needed:
-            _check(dense_dir(config), sha, config.index.dense.model_dump(mode="json"))
-            dense = DenseIndex.load(dense_dir(config))
-            encoder = encoder or SentenceTransformerEncoder(config.index.dense)
+            settings = config.index.dense_models[dense] if dense else config.index.dense
+            folder = dense_dir(config, dense)
+            _check(folder, sha, settings.settings())
+            dense_index = DenseIndex.load(folder)
+            encoder = encoder or make_encoder(settings)
         # A --limit index covers a subset: keep exactly its chunks, in its order.
         by_id = {c.chunk_id: c for c in read_jsonl(chunks_path, Chunk)}
-        ids = (bm25 or dense).chunk_ids
+        ids = (bm25 or dense_index).chunk_ids
         works = (
             WorkMap.load(config.paths.works, chunks_path) if config.retrieve.dedup.enabled else None
         )
-        return cls([by_id[i] for i in ids], config.retrieve, bm25, dense, encoder, works)
+        return cls([by_id[i] for i in ids], config.retrieve, bm25, dense_index, encoder, works)
 
     def retrieve(
         self,

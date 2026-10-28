@@ -1,5 +1,7 @@
 """`rag index <kind>`: build the retrieval indexes over the chunks."""
 
+from typing import Annotated
+
 import typer
 
 from rag.common.cli import LimitOption, get_config
@@ -18,9 +20,20 @@ def bm25(ctx: typer.Context, limit: LimitOption = None) -> None:
 
 
 @app.command()
-def dense(ctx: typer.Context, limit: LimitOption = None) -> None:
-    """Chunks -> embeddings (CPU; ~20 min for the full corpus) -> index/dense/<model>/."""
-    pipeline.dense(get_config(ctx), limit)
+def dense(
+    ctx: typer.Context,
+    limit: LimitOption = None,
+    model: Annotated[
+        str | None, typer.Option(help="One of index.dense_models (default: index.dense_model)")
+    ] = None,
+) -> None:
+    """Chunks -> embeddings (CPU: ~1 h bge-small, ~3 h a base model) -> index/dense/<model>/."""
+    config = get_config(ctx)
+    if model is not None and model not in config.index.dense_models:
+        raise typer.BadParameter(
+            f"known: {sorted(config.index.dense_models)}", param_hint="--model"
+        )
+    pipeline.dense(config, limit, model=model)
 
 
 @app.command("all")

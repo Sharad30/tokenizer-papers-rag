@@ -154,9 +154,7 @@ def test_limit_scores_the_first_questions(config) -> None:
 def test_end_to_end_on_real_indexes(config, monkeypatch) -> None:
     index_pipeline.bm25(config)
     index_pipeline.dense(config, encoder=FakeEncoder())
-    monkeypatch.setattr(
-        "rag.retrieve.retriever.SentenceTransformerEncoder", lambda _cfg: FakeEncoder()
-    )
+    monkeypatch.setattr("rag.retrieve.retriever.make_encoder", lambda _cfg: FakeEncoder())
     out = run_eval(config, "e2e", ["bm25", "dense", "hybrid"], FIXTURE)
     result = RunResult.model_validate_json(out.read_text())
     assert set(result.modes) == {"bm25", "dense", "hybrid"}

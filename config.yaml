@@ -269,12 +269,34 @@ index:
     include_header: true      # "Title > Section" indexed with the body (D-029)
     stopwords: en
     split_compounds: true     # "byte-level" also indexes "byte", "level" (D-027)
-  dense:
-    model: BAAI/bge-small-en-v1.5
-    query_prompt: "Represent this sentence for searching relevant passages: "  # model card; queries only
-    prepend_header: true      # embed "header\ntext" (D-029)
-    batch_size: 64
-    device: cpu
+  dense_model: bge_small       # the deployed model (D-043); others are for comparison
+  dense_models:               # `rag index dense --model <name>` builds one (Phase 6)
+    bge_small:
+      model: BAAI/bge-small-en-v1.5
+      query_prompt: "Represent this sentence for searching relevant passages: "  # model card; queries only
+      prepend_header: true      # embed "header\ntext" (D-029)
+      batch_size: 64
+      device: cpu
+    bge_base:
+      model: BAAI/bge-base-en-v1.5
+      query_prompt: "Represent this sentence for searching relevant passages: "  # model card; queries only
+      prepend_header: true
+      batch_size: 32
+      device: cpu
+    specter2:                 # scientific: citation-trained; ad-hoc query adapter for queries
+      kind: specter2
+      model: allenai/specter2_base
+      query_adapter: allenai/specter2_adhoc_query   # model card: queries
+      document_adapter: allenai/specter2            # proximity adapter: candidates
+      query_prompt: ""
+      prepend_header: true
+      header_separator: "[SEP]"   # model card: title + sep_token + abstract
+      max_length: 512
+      batch_size: 32
+      device: cpu
+      # `adapters` 1.3.0 pins transformers~=4.57.6; ours is 5.x, so SPECTER2 runs
+      # in an isolated uv environment (same torch, so no second download).
+      isolated_with: [adapters==1.3.0, transformers==4.57.6, torch==2.14.1, numpy]
 
 retrieve:
   default_mode: hybrid        # bm25 | dense | hybrid

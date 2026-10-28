@@ -18,7 +18,7 @@ from rag.common.stats import stage_stats
 from rag.parse.pipeline import CHUNKS, step_dir
 from rag.parse.schemas import Chunk
 from rag.retrieve.bm25 import Bm25Index
-from rag.retrieve.dense import DenseIndex, Encoder, SentenceTransformerEncoder
+from rag.retrieve.dense import DenseIndex, Encoder, make_encoder
 from rag.retrieve.retriever import META, bm25_dir, dense_dir
 from rag.retrieve.schemas import IndexMeta
 
@@ -63,20 +63,26 @@ def bm25(config: Config, limit: int | None = None) -> None:
     log.info("BM25 index: %d chunks -> %s", len(chunks), out)
 
 
-def dense(config: Config, limit: int | None = None, encoder: Encoder | None = None) -> None:
-    out = dense_dir(config)
+def dense(
+    config: Config,
+    limit: int | None = None,
+    encoder: Encoder | None = None,
+    model: str | None = None,
+) -> None:
+    """Embed the chunks with the deployed model, or `model` from index.dense_models."""
+    settings = config.index.dense_models[model] if model else config.index.dense
+    out = dense_dir(config, model)
     chunks, sha = _chunks(config, limit)
     with stage_stats(config, "index.dense", out, limit) as stats:
-        encoder = encoder or SentenceTransformerEncoder(config.index.dense, show_progress=True)
-        index = DenseIndex.build(chunks, config.index.dense, encoder)
+        encoder = encoder or make_encoder(settings, show_progress=True)
+        index = DenseIndex.build(chunks, settings, encoder)
         index.save(out)
-        _write_meta(
-            out, "dense", config.index.dense.model_dump(mode="json"), sha, len(chunks), limit
-        )
+        _write_meta(out, "dense", settings.settings(), sha, len(chunks), limit)
         stats["counts"].update(
             chunks=len(chunks),
             papers=len({c.record_id for c in chunks}),
             dimensions=int(index.embeddings.shape[1]),
+            truncated=int(getattr(encoder, "truncated", 0)),
         )
     log.info("Dense index: %s -> %s", index.embeddings.shape, out)
 
