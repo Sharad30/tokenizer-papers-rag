@@ -136,7 +136,7 @@ Update at the end of each phase.
 - [x] Phase 2: Parse and chunk (2026-10-25; Sharad's inspection and chunk-size tasks still open)
 - [x] Phase 3: Evaluation set (2026-10-26; tooling only: Sharad's questions pending)
 - [x] Phase 4: Baseline retrieval + eval harness (2026-10-26; baseline numbers wait for Sharad's questions)
-- [ ] Phase 5: Versions and near-duplicates
+- [x] Phase 5: Versions and near-duplicates (2026-10-28; resolver precision/recall and Recall/MRR columns wait for Sharad's labelled pairs and questions)
 - [ ] Phase 6: Embedding comparison + hybrid
 - [x] Phase 7: Grounded multi-turn chat (2026-10-26; local qwen3:8b default; Sharad's prompt and year-filter tasks open)
 - [ ] Phase 8: Answer evaluation + failure analysis
@@ -144,13 +144,14 @@ Update at the end of each phase.
 - [ ] Phase 10: Assignment write-up + reproducibility
 - [ ] Phase 11: Journey write-up
 
-Current phase: none in progress. Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then Sharad inspects each stage's quality one by one (and writes the eval questions), then Phases 5 and 6. The chat prototype now works; ask Sharad before starting Phase 5. Phase 8 needs his eval questions. Notes for the next session:
+Current phase: none in progress. Order changed by Sharad on 2026-10-26: Phase 3 tooling -> 4 -> 7 (chat on the baseline retriever), then Sharad inspects each stage's quality one by one (and writes the eval questions), then Phases 5 and 6. Phase 5 is done; ask Sharad before starting Phase 6. Phase 8 needs his eval questions. Notes for the next session:
+- Phase 5 built `rag dedup run|pairs|score` (`src/rag/dedup/`): 1,781 records -> 1,298 works (identifiers give 1,414; +125 title, +12 MinHash merges; chain guard refused 0). Outputs in `data/works/` (gitignored; `review.md` lists fuzzy merges). The Retriever loads the works when `retrieve.dedup.enabled` (refuses them if built from other chunks): canonical mask, per-work cap 1, survey demotion within top k, MMR off (`retrieve/collapse.py`, D-041). Rerun `rag dedup run` after any re-chunk or `rag index dense` (restatements need the dense vectors). `rag eval ablate --name dedup` runs the ablation (probe queries in `probes/phase-5-queries.txt`; adds Recall/MRR once questions exist). The dup@5 judge = identifiers + Sharad's `eval/pairs.jsonl` (D-042), never the resolver. See `notes/phase-5-dedup.md`.
 - Showcase UI side track (2026-10-27, D-037/D-038): `make ui`. Pages so far: system diagram, Collect, Parse and chunk. Pattern for a new stage page: logic in `src/rag/showcase/<stage>.py` (tested, no streamlit import), rendering in `ui/pages/<stage>.py`, register it in `ui/app.py`, add a builder to `BUILDERS` in `showcase/cli.py` if a fresh clone lacks the data. Numbers come from stage outputs, never `stats.json`; examples are sampled with a seed ("Show others"). Regenerate snapshots with `rag showcase snapshot`. 3 manifest records were decided on text that later changed (the page flags them).
 - Phase 7 built `rag chat` (`src/rag/chat/`): rewrite -> hybrid search (k 6) -> retrieval gate (best dense cosine < 0.70) -> context [C1..] -> generate -> NOT_SUPPORTED gate -> citations renumbered by code. Prompts are files in `prompts/`. Transcripts in `data/chat/*.jsonl` (gitignored). See `notes/phase-7-chat.md`, `docs/phase7-demo.md`.
 - LLM: Ollama `qwen3:8b` by default (`ollama pull qwen3:8b` done; ~7-17 s per answer). `--provider anthropic` needs ANTHROPIC_API_KEY in .env (`claude-haiku-5-5`). The anthropic SDK uses its own httpx2: respx can't mock it; tests inject a fake client.
 - The gate threshold 0.70 comes from `probes/phase-7-gate.py` (probe queries, not gold). A new embedding model (Phase 6) needs the probe rerun.
 - `make smoke` now runs in `.smoke/` (a config copy; data/raw symlinked) and needs GROBID and network.
-- Duplicates show in chat sources (arXiv + ACL copies cited together): Phase 5's target.
+- Chat now gets one chunk per work (Phase 5); hits carry `work_id` and `hidden` chunk ids, unused by chat so far.
 - Phase 4 built `rag index bm25|dense|all` (data/index/bm25, data/index/dense/bge-small-en-v1.5), the Retriever (`rag.retrieve.retriever.Retriever.load(config, {"hybrid"})`, `.retrieve(query, k, mode, allow)`), `rag inspect query`, `rag eval run --name`, and `rag report`. See `notes/phase-4-retrieve.md`.
 - Phase 7 chat should use `Retriever.retrieve(..., allow=...)` (the year filter hook is Sharad's task) and the top dense cosine (`Hit.scores["dense"]`) for the abstention gate, never RRF scores.
 - Full dense rebuild takes 45 min on CPU. The Retriever refuses a stale index (chunks sha256 or settings changed). Build from a clean tree (or a clean worktree with `--config`) so stats carry a clean commit.
@@ -160,7 +161,7 @@ Current phase: none in progress. Order changed by Sharad on 2026-10-26: Phase 3 
 - Chunks: bge-small tokenizer, target 300 / max 448 / overlap 40; header stored separately (`Chunk.header`) and must be prepended at embedding time in Phase 4. References are in `data/parsed/papers/references.jsonl`, never chunked.
 - GROBID is only needed for `rag parse grobid`/`all` (`make grobid-up`, Docker Desktop running). `structure`, `chunk`, `inspect` and `eval` work without it.
 - `rag parse mark` writes `included_in_index` into the manifest; rerun it after `rag collect manifest`. It skips after a `--limit` run.
-- D-013 to D-036 are `proposed`. PyMuPDF is pinned `<2`.
-- Sharad's open "You do" items: Phase 7 system-prompt change (journal skeleton) and `--year-min` filter (`TODO(sharad)` in `chat/cli.py`); Phase 4 Recall@10 (`TODO(sharad)` in `eval/metrics.py`), hand-computed Recall@5/MRR for 2 questions, Phase 5/6 journal predictions; Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
-- Chunks include linked copies and kept v1s on purpose; Phase 5 dedups (the BPE definition sentence appears in 12 other records).
+- D-013 to D-042 are `proposed`. PyMuPDF is pinned `<2`.
+- Sharad's open "You do" items: Phase 5 label `eval/pairs.jsonl` from `eval/pairs_candidates.jsonl` then `rag dedup score`, review `data/works/review.md`, per-work cap 1 -> 2 and rerun the ablation (journal skeletons exist), Phase 5 prediction entry; Phase 7 system-prompt change (journal skeleton) and `--year-min` filter (`TODO(sharad)` in `chat/cli.py`); Phase 4 Recall@10 (`TODO(sharad)` in `eval/metrics.py`), hand-computed Recall@5/MRR for 2 questions, Phase 5/6 journal predictions; Phase 3 questions; Phase 2 inspection of 5 papers and the chunk-size comparison; Phase 1 audit labels, D-005 rule, seed query, journal predictions; Phase 0 `TODO(sharad)` config field and first journal entry.
+- Chunks include linked copies and kept v1s on purpose; Phase 5 masks non-canonical records at query time (no rebuild).
 - Typer 0.27 vendors Click privately (`typer._click`): don't `import click`. Local uv is 0.11.7.

@@ -364,6 +364,8 @@ Each fix gets a unit test from a real failing case. **Exit:** the Parse page's t
 
 **Exit.** Ablation table and resolver precision/recall committed; chosen configuration recorded.
 
+**Done 2026-10-28** (D-040 to D-042, `notes/phase-5-dedup.md`): `rag dedup run|pairs|score`, query-time collapse in the Retriever, `rag eval ablate --name dedup`. dup@5 on 40 probe queries: 0.470 → 0.000 with the per-work cap (copy_dup@5 0.255 → 0). Resolver precision/recall and the Recall@5/MRR columns wait for Sharad's labelled pairs and questions. Changes from the plan: query-time mask instead of a canonical-only index (no rebuild per variant), MinHash written in the repo instead of datasketch, probe queries for dup@5 until gold questions exist.
+
 ---
 
 ## Phase 6: Embedding comparison and hybrid search
