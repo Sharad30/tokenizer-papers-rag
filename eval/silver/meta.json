@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-10-28T22:01:39.100673Z",
+  "model": "qwen3:8b",
+  "prompt_sha256": "de6f56ddfbe869fc6ce158276341afe7eede50c6d54b7f3610991893d65a2af8",
+  "seed": 13,
+  "sampled": 90,
+  "kept": 66,
+  "rejected": {
+    "llm_error": 1,
+    "refers_to_source": 18,
+    "evidence_not_in_chunk": 4,
+    "unparseable": 1
+  }
+}
