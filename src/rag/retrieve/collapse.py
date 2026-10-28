@@ -7,14 +7,14 @@ run`). Here, per query:
                     arXiv copy of an ACL paper) are masked out before ranking.
                     Same dense results as an index without them; BM25's IDF
                     still counts them.
-2. survey demotion  a survey chunk that restates work W moves below W's best
-                    chunk when W is among the candidates: cite the source, not
-                    the summary. It is moved, not dropped.
-3. per-work cap     at most N chunks per work. Chunks over the cap are hidden,
+2. per-work cap     at most N chunks per work. Chunks over the cap are hidden,
                     and listed on the hit that kept the work's place.
-4. MMR (optional)   Maximal Marginal Relevance: pick each next chunk by
+3. MMR (optional)   Maximal Marginal Relevance: pick each next chunk by
                     lambda * relevance - (1 - lambda) * (max cosine to the
                     chunks already picked), trading relevance for novelty.
+4. survey demotion  within the top k, a survey chunk that restates work W
+                    moves just below W's chunk: cite the source, not the
+                    summary. It is moved, never dropped.
 """
 
 import json
@@ -93,9 +93,7 @@ def collapse(
     k: int,
     vectors: np.ndarray | None = None,
 ) -> tuple[Ranked, dict[int, list[int]]]:
-    """The top k after demotion, cap and MMR, and per kept position the positions it hides."""
-    if settings.survey_demotion:
-        ranked = demote_restatements(ranked, chunks, works)
+    """The top k after cap, MMR and demotion, and per kept position the positions it hides."""
     hidden: dict[int, list[int]] = {}
     if settings.per_work_cap:
         ranked, hidden = cap_per_work(ranked, chunks, works, settings.per_work_cap)
@@ -104,12 +102,17 @@ def collapse(
             raise ValueError("MMR needs the dense vectors")
         ranked = mmr(ranked, vectors, settings.mmr_lambda, k)
     ranked = ranked[:k]
+    if settings.survey_demotion:
+        # Last, and only within the results: a source deeper in the candidates
+        # would otherwise push the survey out without coming in itself.
+        ranked = demote_restatements(ranked, chunks, works)
     kept = {i for i, _ in ranked}
     return ranked, {i: hidden[i] for i in kept if i in hidden}
 
 
 def demote_restatements(ranked: Ranked, chunks: Sequence[Chunk], works: WorkMap) -> Ranked:
-    """Move each restating survey chunk to just after the best chunk of the work it restates."""
+    """Move each restating survey chunk to just after the best chunk of the work it
+    restates, when that work is in `ranked` below it. Nothing is dropped."""
     best_of_work: dict[str, int] = {}
     for position, (i, _) in enumerate(ranked):
         best_of_work.setdefault(works.work_of(chunks[i]), position)

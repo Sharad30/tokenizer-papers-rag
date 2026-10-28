@@ -132,3 +132,17 @@ def test_dedup_enabled_without_works_is_refused(built) -> None:  # noqa: F811
     )
     with pytest.raises(RuntimeError, match="rag dedup run"):
         base.with_dedup(settings, None)
+
+
+def test_a_source_outside_the_top_k_does_not_push_the_survey_out() -> None:
+    from rag.retrieve.collapse import collapse
+
+    settings = DedupSettings(
+        enabled=True, canonical_only=True, per_work_cap=1, survey_demotion=True
+    )
+    # Survey first, the restated work (acl:bpe) only at position 3: outside k=2.
+    ranked = [(3, 0.9), (4, 0.8), (0, 0.7)]
+    kept, _ = collapse(ranked, CHUNKS, WORKS, settings, k=2)
+    assert positions(kept) == [3, 4]
+    kept3, _ = collapse(ranked, CHUNKS, WORKS, settings, k=3)
+    assert positions(kept3) == [4, 0, 3]
