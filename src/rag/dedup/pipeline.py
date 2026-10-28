@@ -22,12 +22,14 @@ from rag.common.config import Config
 from rag.common.io import file_sha256, read_jsonl, write_json, write_jsonl, write_text_atomic
 from rag.common.provenance import git_commit
 from rag.common.stats import stage_stats
+from rag.dedup import pairs
 from rag.dedup.config import DedupConfig
 from rag.dedup.files import META, RECORD_WORK, RESTATEMENTS, REVIEW, SURVEYS, WORKS
 from rag.dedup.minhash import MinHasher, shingle_hashes, shingles
 from rag.dedup.resolve import Resolution, resolve
 from rag.dedup.schemas import Restatement, Work, WorksMeta
 from rag.dedup.surveys import ReferenceResolver, find_restatements, find_surveys
+from rag.eval.identity import load_pairs
 from rag.parse.pipeline import CHUNKS, REFERENCES, step_dir
 from rag.parse.schemas import Chunk, Reference
 from rag.retrieve.dense import DenseIndex
@@ -172,3 +174,40 @@ def review_markdown(works: Sequence[Work], records: Sequence[ManifestRecord]) ->
 
 def read_record_work(out: Path) -> dict[str, str]:
     return json.loads((out / RECORD_WORK).read_text(encoding="utf-8"))
+
+
+def write_pair_candidates(config: Config) -> Path:
+    """Sample record pairs across bands for labelling (`rag dedup pairs`)."""
+    works = read_jsonl(config.paths.works / WORKS, Work)
+    chunks = read_chunks(config)
+    present = {c.record_id for c in chunks}
+    records = [r for r in indexed_records(config) if r.record_id in present]
+    sigs = signatures(chunks, config.dedup)
+    abstracts: dict[str, np.ndarray] = {}
+    try:
+        dense = DenseIndex.load(dense_dir(config))
+        row = {cid: i for i, cid in enumerate(dense.chunk_ids)}
+        for chunk in chunks:
+            if chunk.element_type == "abstract" and chunk.chunk_id in row:
+                abstracts.setdefault(chunk.record_id, dense.embeddings[row[chunk.chunk_id]])
+    except (FileNotFoundError, IndexUnavailable) as exc:
+        log.warning("No dense index (%s): topical pairs skipped", exc)
+    chosen = pairs.sample_pairs(
+        records, works, sigs, abstracts, config.dedup.author_overlap_min, config.dedup.pairs
+    )
+    by_id = {r.record_id: r for r in records}
+    rows = pairs.candidates(list(chosen), by_id, sigs, config.dedup.pairs.seed)
+    path = pairs.write_candidates(config, chosen, rows)
+    bands = Counter(chosen.values())
+    log.info("%d candidate pairs (%s) -> %s", len(rows), dict(bands), path)
+    return path
+
+
+def score_resolver(config: Config) -> Path | None:
+    """Precision and recall of the current works on eval/pairs.jsonl (`rag dedup score`)."""
+    labelled = load_pairs(config.paths.eval / config.eval.pairs_file)
+    if not labelled:
+        log.warning("No labelled pairs yet: %s. Nothing to score.", config.eval.pairs_file)
+        return None
+    record_work = read_record_work(config.paths.works)
+    return pairs.resolver_score(config, labelled, record_work, pairs.read_bands(config.paths.works))

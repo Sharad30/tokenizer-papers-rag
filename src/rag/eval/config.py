@@ -17,6 +17,7 @@ class BootstrapConfig(StrictModel):
 
 class EvalConfig(StrictModel):
     questions_file: str  # under paths.eval
+    pairs_file: str  # Sharad's labelled record pairs, under paths.eval (D-042)
     # PLAN's question mix, as minimums per type (D-025).
     mix_min: dict[QuestionType, int]
     duplicate_sensitive_min: int = Field(ge=0)

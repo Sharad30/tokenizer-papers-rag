@@ -28,6 +28,14 @@ CONFIG = DedupConfig.model_validate(
         "cluster_floor": 0.2,
         "canonical_order": ["acl", "arxiv", "s2"],
         "surveys": {"title_cues": ["survey"], "reference_title_min": 95, "restate_min": 0.8},
+        "pairs": {
+            "seed": 0,
+            "candidates_file": "c.jsonl",
+            "per_band": {"id_linked": 1, "fuzzy_merged": 1, "near_miss": 1, "topical": 1},
+            "near_miss_title_min": 75,
+            "near_miss_jaccard_min": 0.1,
+            "topical_pool": 5,
+        },
     }
 )
 HASHER = MinHasher(256, seed=0)

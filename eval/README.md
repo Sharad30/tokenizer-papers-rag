@@ -47,3 +47,42 @@ an LLM.
 At least 12 lookups (several answered by tables), 8 multi-paper, 8
 followups across at least 3 conversations, 6 unanswerable, 3
 duplicate-sensitive. `validate` prints have vs. minimum.
+
+# Labelled pairs (Phase 5)
+
+`pairs.jsonl` says which pairs of records are the same paper. Sharad labels
+them; scripts never write this file. It does two jobs:
+
+- **Judge for dup@5** (D-042): a pair labelled `same` joins the identity
+  groups, next to shared identifiers. Copies nobody labelled count as
+  different papers, so dup@5 is a lower bound.
+- **Resolver precision and recall:** `uv run rag dedup score` compares
+  `rag dedup run`'s works with the labels.
+
+## Workflow
+
+1. `uv run rag dedup pairs` writes `pairs_candidates.jsonl`: about 55 pairs
+   drawn from four bands (joined by IDs, joined by title or text, near
+   misses, similar abstracts by different authors). It shows titles,
+   authors, venues, links and the evidence (title ratio, author overlap,
+   text Jaccard), but not what the resolver decided.
+2. For each candidate, open both papers and decide. Write one line per
+   pair to `pairs.jsonl`.
+3. `uv run rag dedup score`, then review the disagreements it lists.
+
+## Fields
+
+| Field | Meaning |
+|---|---|
+| `a`, `b` | The two record ids, copied from the candidate. |
+| `same` | True when, for a reader, the two are one paper: a duplicate if both are in a top-5. |
+| `kind` | `version`, `venue_copy` (preprint vs published, or one paper at two venues), `extended` (conference vs extended journal version), `follow_up`, `companion`, `survey`, `distinct`. |
+| `notes` | Optional: what decided it. |
+
+Whether an `extended` version counts as `same` is a policy call: record it
+in D-040 and label consistently.
+
+```json
+{"a": "acl:2020.emnlp-main.203", "b": "arxiv:2004.14280v1", "same": true, "kind": "venue_copy", "notes": "title changed for the camera-ready"}
+{"a": "acl:D18-1473", "b": "acl:P19-1148", "same": false, "kind": "follow_up"}
+```

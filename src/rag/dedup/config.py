@@ -44,6 +44,18 @@ class SurveyConfig(StrictModel):
     restate_min: float = Field(ge=-1, le=1)
 
 
+class PairSamplingConfig(StrictModel):
+    """`rag dedup pairs`: candidates for Sharad to label (eval/pairs.jsonl)."""
+
+    seed: int
+    candidates_file: str  # under paths.eval
+    # Pairs per band: id_linked, fuzzy_merged, near_miss, topical.
+    per_band: dict[Literal["id_linked", "fuzzy_merged", "near_miss", "topical"], int]
+    near_miss_title_min: float = Field(ge=0, le=100)
+    near_miss_jaccard_min: float = Field(ge=0, le=1)
+    topical_pool: int = Field(ge=1)  # most similar abstract pairs to sample topical pairs from
+
+
 class DedupConfig(StrictModel):
     seed: int  # MinHash hash functions
     steps: list[Step]  # which resolver steps run (the ablation switches them off)
@@ -59,6 +71,7 @@ class DedupConfig(StrictModel):
     # Which member represents a work, by source; ties: latest arXiv version, then most chunks.
     canonical_order: list[Literal["acl", "arxiv", "s2"]]
     surveys: SurveyConfig
+    pairs: PairSamplingConfig
 
     @model_validator(mode="after")
     def _review_below_min(self) -> "DedupConfig":

@@ -13,7 +13,7 @@ from rag.common.config import Config
 from rag.common.io import file_sha256, write_json
 from rag.common.provenance import config_hash, git_commit
 from rag.eval.harness import Retrieves, run_mode
-from rag.eval.identity import identity_groups
+from rag.eval.identity import identity_groups, load_pairs
 from rag.eval.results import RunResult
 from rag.eval.schemas import Question, QuestionType
 from rag.eval.spans import ChunkTexts
@@ -90,7 +90,8 @@ def run_eval(
         rewrites = system_rewrites(questions, llm, prompt, config)
         rewriter_info = {"model": llm.model, "prompt_sha256": prompt.sha256}
     texts = ChunkTexts.from_file(step_dir(config, "chunk") / CHUNKS)
-    groups = identity_groups(read_manifest(config.paths.manifest))
+    pairs = load_pairs(config.paths.eval / config.eval.pairs_file)
+    groups = identity_groups(read_manifest(config.paths.manifest), pairs)
     result = RunResult(
         run=name,
         created_at=datetime.now(UTC),

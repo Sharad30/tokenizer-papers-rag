@@ -203,9 +203,17 @@ dedup:
     # work's closest chunk scores 0.82 median, 0.87 at the 95th percentile;
     # cited works 0.88 median (measured on the Brief History survey, D-041).
     restate_min: 0.87
+  pairs:                      # `rag dedup pairs`: candidates for Sharad to label
+    seed: 13
+    candidates_file: pairs_candidates.jsonl   # under paths.eval; labels go in pairs.jsonl
+    per_band: {id_linked: 5, fuzzy_merged: 15, near_miss: 20, topical: 20}
+    near_miss_title_min: 75   # shared authors and a title this close, but not merged
+    near_miss_jaccard_min: 0.1
+    topical_pool: 300         # most similar abstract pairs by different authors
 
 eval:
   questions_file: questions.jsonl   # Sharad's questions, under paths.eval
+  pairs_file: pairs.jsonl              # Sharad's labelled record pairs (D-042)
   # PLAN's mix (about 36 questions), as minimums per type (D-025).
   mix_min:
     lookup: 12

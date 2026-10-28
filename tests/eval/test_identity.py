@@ -24,3 +24,22 @@ def test_links_by_shared_ids_and_derivation() -> None:
     assert bpe == {"acl:P16-1162"}  # smallest record id names the group
     assert groups["arxiv:other"] == groups["s2:other"]
     assert groups["s2:alone"] == "s2:alone"
+
+
+def test_labelled_same_pairs_join_groups_and_different_pairs_do_not() -> None:
+    from rag.eval.schemas import LabelledPair
+
+    records = [rec("acl:x"), rec("arxiv:y"), rec("arxiv:z")]
+    pairs = [
+        LabelledPair(a="acl:x", b="arxiv:y", same=True, kind="venue_copy"),
+        LabelledPair(a="acl:x", b="arxiv:z", same=False, kind="follow_up"),
+    ]
+    groups = identity_groups(records, pairs)
+    assert groups["arxiv:y"] == groups["acl:x"] == "acl:x"
+    assert groups["arxiv:z"] == "arxiv:z"
+
+
+def test_missing_pairs_file_means_no_pairs(tmp_path) -> None:
+    from rag.eval.identity import load_pairs
+
+    assert load_pairs(tmp_path / "pairs.jsonl") == []

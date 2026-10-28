@@ -105,8 +105,16 @@ dedup:
     title_cues: [survey]
     reference_title_min: 95
     restate_min: 0.8
+  pairs:
+    seed: 0
+    candidates_file: pairs_candidates.jsonl
+    per_band: {id_linked: 1, fuzzy_merged: 1, near_miss: 1, topical: 1}
+    near_miss_title_min: 75
+    near_miss_jaccard_min: 0.1
+    topical_pool: 5
 eval:
   questions_file: questions.jsonl
+  pairs_file: pairs.jsonl              # Sharad's labelled record pairs (D-042)
   mix_min:
     lookup: 1
     multi_paper: 1

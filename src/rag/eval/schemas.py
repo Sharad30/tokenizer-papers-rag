@@ -88,3 +88,46 @@ class Question(StrictModel):
         if problems:
             raise ValueError("; ".join(problems))
         return self
+
+
+class PairKind(StrEnum):
+    """What a labelled pair of records is (the edge-case policy in D-040)."""
+
+    VERSION = "version"  # arXiv versions of one paper
+    VENUE_COPY = "venue_copy"  # preprint vs published, or one paper at two venues
+    EXTENDED = "extended"  # workshop/conference paper vs its extended journal version
+    FOLLOW_UP = "follow_up"  # same authors, new work
+    COMPANION = "companion"  # written together, different contributions
+    SURVEY = "survey"  # one summarises the other
+    DISTINCT = "distinct"  # unrelated or merely on the same topic
+
+
+class LabelledPair(StrictModel):
+    """One line of eval/pairs.jsonl: Sharad's judgement of two records."""
+
+    a: str  # record_id
+    b: str
+    same: bool  # one work for retrieval: duplicates of each other in a top-5
+    kind: PairKind
+    notes: str | None = None
+
+
+class PairCandidate(StrictModel):
+    """A pair offered for labelling (eval/pairs_candidates.jsonl). Shows the
+    evidence but not the resolver's verdict, so the label isn't anchored on it."""
+
+    a: str
+    b: str
+    title_a: str
+    title_b: str
+    authors_a: list[str]
+    authors_b: list[str]
+    year_a: int | None
+    year_b: int | None
+    venue_a: str | None
+    venue_b: str | None
+    url_a: str | None
+    url_b: str | None
+    title_ratio: float
+    author_overlap: float
+    text_jaccard: float  # MinHash estimate over full-text 5-word shingles

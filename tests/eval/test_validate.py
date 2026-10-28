@@ -15,6 +15,7 @@ INDEXED = {"p:a": True, "p:a-copy": True, "p:b": True, "p:noflag": False}
 def eval_config() -> EvalConfig:
     return EvalConfig(
         questions_file="questions.jsonl",
+        pairs_file="pairs.jsonl",
         mix_min={"lookup": 1, "multi_paper": 1, "followup": 1, "unanswerable": 1},
         duplicate_sensitive_min=1,
         conversations_min=1,
