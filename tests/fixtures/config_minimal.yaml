@@ -195,3 +195,5 @@ showcase:
     snapshot_papers: 1
     token_bin_width: 10
     bibliography_min_matches: 2
+  dedup:
+    pool_size: 3

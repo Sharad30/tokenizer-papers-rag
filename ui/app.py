@@ -18,6 +18,7 @@ page = st.navigation(
         "Pipeline": [
             st.Page(PAGES / "collect.py", title="1 · Collect"),
             st.Page(PAGES / "parse.py", title="2 · Parse and chunk"),
+            st.Page(PAGES / "dedup.py", title="3 · Versions and duplicates"),
         ],
     }
 )

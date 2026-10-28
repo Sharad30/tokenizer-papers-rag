@@ -9,7 +9,7 @@ import typer
 from rag.common.cli import get_config
 from rag.common.config import Config
 from rag.common.provenance import git_commit
-from rag.showcase import collect, parse
+from rag.showcase import collect, dedup, parse
 from rag.showcase.sources import snapshot_file, write_snapshot
 
 app = typer.Typer(
@@ -40,10 +40,19 @@ def _parse(config: Config) -> tuple[dict[str, Path], dict]:
     return parse.source_files(config), parse.snapshot_data(config, data, show, config.showcase.seed)
 
 
+def _dedup(config: Config) -> tuple[dict[str, Path], dict]:
+    data = dedup.load(config)
+    if data.origin != "live":
+        raise NotLive("needs data/works/ and the chunks; run `rag dedup run` first")
+    show = config.showcase.dedup
+    return dedup.source_files(config), dedup.snapshot_data(data, show, config.showcase.seed)
+
+
 # One builder per stage page; later pages add theirs here.
 BUILDERS: dict[str, Callable[[Config], tuple[dict[str, Path], dict]]] = {
     collect.STAGE: _collect,
     parse.STAGE: _parse,
+    dedup.STAGE: _dedup,
 }
 
 

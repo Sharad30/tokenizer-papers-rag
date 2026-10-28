@@ -338,3 +338,5 @@ showcase:
     # Proceedings of", "arXiv preprint arXiv:", "pages 1-10") is flagged as
     # leaked reference-list text. Set by eye on real chunks.
     bibliography_min_matches: 3
+  dedup:
+    pool_size: 30          # ID-only works and restatements kept in the snapshot

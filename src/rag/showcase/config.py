@@ -22,8 +22,14 @@ class ParseShowcaseConfig(StrictModel):
     bibliography_min_matches: int = Field(ge=1)
 
 
+class DedupShowcaseConfig(StrictModel):
+    # ID-only works and restatements kept in the snapshot (fuzzy merges are all kept).
+    pool_size: int = Field(ge=1)
+
+
 class ShowcaseConfig(StrictModel):
     seed: int  # first sample of examples; "Show others" moves on from it
     examples_shown: int = Field(ge=1)
     collect: CollectShowcaseConfig
     parse: ParseShowcaseConfig
+    dedup: DedupShowcaseConfig
