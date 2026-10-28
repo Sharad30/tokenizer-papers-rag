@@ -11,9 +11,14 @@ from pathlib import Path
 import altair as alt
 import streamlit as st
 
+from rag.collect.manifest import read_manifest
 from rag.common.config import DEFAULT_CONFIG_PATH, load_config
 from rag.dedup.schemas import Edge
-from rag.showcase import dedup
+from rag.eval.identity import identity_groups, load_pairs
+from rag.retrieve.collapse import WorksUnavailable
+from rag.retrieve.config import DedupSettings
+from rag.retrieve.retriever import IndexUnavailable, Retriever
+from rag.showcase import dedup, live
 from rag.showcase.parse import sample
 from rag.showcase.sources import fingerprint
 
@@ -121,6 +126,77 @@ with right:
         "Identifier edges count links (one pair can share several ids), not records. "
         f"{view.restatements} survey chunks restate a work they cite."
     )
+
+# --- Before and after, live --------------------------------------------------------------
+
+OFF = DedupSettings(enabled=False, canonical_only=False, per_work_cap=0, survey_demotion=False)
+
+
+@st.cache_resource(show_spinner="Loading the indexes and the embedding model…")
+def retrievers(config_stamp, index_stamp):
+    """The deployed retriever (duplicate handling on) and the same indexes with it off."""
+    config = load_config(CONFIG_PATH)
+    on = Retriever.load(config, {"hybrid"})
+    judge = identity_groups(
+        read_manifest(config.paths.manifest), load_pairs(config.paths.eval / config.eval.pairs_file)
+    )
+    return on, on.with_dedup(OFF, None), judge, on.works.record_work if on.works else {}
+
+
+def show_hits(view: live.QueryView) -> None:
+    for hit in view.hits:
+        with st.container(border=True):
+            st.caption(
+                f"**#{hit.rank}** · `{hit.record_id}` · {hit.title[:70]} · {hit.section[:40]}"
+            )
+            note = live.badge(hit)
+            if note:
+                st.markdown(f":orange[**{note}**]")
+            st.write(live.preview(hit.text, 220))
+            if hit.hidden:
+                st.caption(f"+{len(hit.hidden)} more chunks of this paper hidden by the cap")
+
+
+st.header("Try it: the same query, without and with duplicate handling")
+st.caption(
+    "Hybrid retrieval (BM25 + bge-small, RRF) over the same indexes. Left: Phase 4 behaviour. "
+    "Right: the deployed setting (non-canonical records hidden, one chunk per paper, surveys "
+    "below their sources). Duplicates are marked by the resolver's works."
+)
+query = st.text_input("Query", value="What is BPE dropout?", key="dedup_query")
+k = st.slider("Results", 3, 10, 5, key="dedup_k")
+index_files = [
+    config.paths.index / "bm25" / "meta.json",
+    config.paths.works / "meta.json",
+]
+try:
+    on, off, judge, work_of = retrievers(fingerprint([CONFIG_PATH]), fingerprint(index_files))
+except (IndexUnavailable, WorksUnavailable, FileNotFoundError) as exc:
+    st.info(f"Live queries need the indexes and works on this machine ({exc}).")
+else:
+    if query.strip():
+        before = live.run_query(off, query, k, "hybrid", judge, work_of)
+        after = live.run_query(on, query, k, "hybrid", judge, work_of)
+        left, right = st.columns(2)
+        for column, title, view in (
+            (left, "Without duplicate handling", before),
+            (right, "With duplicate handling (deployed)", after),
+        ):
+            with column:
+                st.subheader(title)
+                cols = st.columns(3)
+                cols[0].metric(
+                    f"dup@{k}",
+                    f"{view.dup:.2f}",
+                    help="Judged by identifiers + labelled pairs (D-042).",
+                )
+                cols[1].metric(
+                    f"dup@{k} by the resolver",
+                    f"{view.dup_resolver:.2f}",
+                    help="By the resolver's own works: what it believes, not ground truth.",
+                )
+                cols[2].metric("Different papers", view.papers)
+                show_hits(view)
 
 # --- Examples -------------------------------------------------------------------------
 

@@ -19,6 +19,7 @@ page = st.navigation(
             st.Page(PAGES / "collect.py", title="1 · Collect"),
             st.Page(PAGES / "parse.py", title="2 · Parse and chunk"),
             st.Page(PAGES / "dedup.py", title="3 · Versions and duplicates"),
+            st.Page(PAGES / "embeddings.py", title="4 · Pick an embedding model"),
         ],
     }
 )

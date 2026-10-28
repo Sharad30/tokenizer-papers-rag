@@ -9,7 +9,7 @@ import typer
 from rag.common.cli import get_config
 from rag.common.config import Config
 from rag.common.provenance import git_commit
-from rag.showcase import collect, dedup, parse
+from rag.showcase import collect, dedup, embeddings, parse
 from rag.showcase.sources import snapshot_file, write_snapshot
 
 app = typer.Typer(
@@ -48,11 +48,19 @@ def _dedup(config: Config) -> tuple[dict[str, Path], dict]:
     return dedup.source_files(config), dedup.snapshot_data(data, show, config.showcase.seed)
 
 
+def _embeddings(config: Config) -> tuple[dict[str, Path], dict]:
+    data = embeddings.load(config)
+    if data.origin != "live" or not any(m.status == "built" for m in data.models):
+        raise NotLive("needs the indexes in data/index/; run `rag index` first")
+    return embeddings.source_files(config), embeddings.snapshot_data(data)
+
+
 # One builder per stage page; later pages add theirs here.
 BUILDERS: dict[str, Callable[[Config], tuple[dict[str, Path], dict]]] = {
     collect.STAGE: _collect,
     parse.STAGE: _parse,
     dedup.STAGE: _dedup,
+    embeddings.STAGE: _embeddings,
 }
 
 

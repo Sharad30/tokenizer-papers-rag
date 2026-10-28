@@ -78,3 +78,14 @@ def test_page_live_and_from_the_snapshot(config: Config, dedup_page: AppTest) ->
     at = dedup_page.run()
     assert not at.exception
     assert "snapshot from commit abc12345" in at.caption[0].value
+
+
+def test_embeddings_page_without_indexes_says_so(config: Config, monkeypatch) -> None:
+    from rag.showcase import embeddings
+
+    assert {m.status for m in embeddings.models(config)} == {"missing"}
+    monkeypatch.setenv("RAG_CONFIG", str(config.paths.manifest.parent.parent / "config.yaml"))
+    at = AppTest.from_file(str(UI / "pages" / "embeddings.py"), default_timeout=30).run()
+    assert not at.exception
+    assert any("No comparison yet" in i.value for i in at.info)
+    assert any("Live queries need the indexes" in i.value for i in at.info)
