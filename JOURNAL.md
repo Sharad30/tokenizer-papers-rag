@@ -183,3 +183,33 @@ Phase: 7  ·  Type: prediction
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-28: Per-work cap 1 vs 2 (Phase 5)
+Phase: 5  ·  Type: prediction
+
+### Prediction (Sharad):
+(with the cap at 2 instead of 1: dup@5, and Recall@5 / MRR once your questions exist. Write before re-running `rag eval ablate --name dedup`)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(numbers, results file path, commit)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
+
+## 2026-10-28: Reviewing the fuzzy merges and labelling pairs (Phase 5)
+Phase: 5  ·  Type: result
+
+### Prediction (Sharad):
+(how many of the fuzzy merges in data/works/review.md will be wrong? resolver precision and recall on your labels?)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(false merges found; `rag dedup score` output; results file path)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:

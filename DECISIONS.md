@@ -153,6 +153,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: judgement call. Stats will report how many v1s were kept.
 - Tuned on eval set?: no
 - Revisit if: Phase 5 finds result changes the abstract rule missed.
+- Update 2026-10-28: kept v1s join their work as aliases (D-040); their chunks stay in the index, masked at query time.
 
 ## D-010: The manifest records every candidate, including rejects
 - Date / Phase: 2026-10-23 / Phase 1
@@ -429,6 +430,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: definitions.
 - Tuned on eval set?: no
 - Revisit if: Phase 5 adds labelled restatement pairs to dup@5.
+- Update 2026-10-28: D-042 adds Sharad's labelled pairs to the judge; D-041 adds copy_dup@k (copies only, not repeat chunks of one record).
 
 ## D-032: LLM behind one interface: Ollama qwen3:8b by default, Anthropic optional
 - Date / Phase: 2026-10-26 / Phase 7
@@ -548,3 +550,73 @@ deleted: a changed decision gets a new entry, and the old one is marked
   Structure stats: 5,831 caption labels stripped (768 replaced a different `<head>`), 2,382 bibliography sentences and 110 whole paragraphs dropped, 5 "References" body divs skipped, 147 non-headings folded (76 figure labels, 46 equations, 14 venue lines, 11 letter-spaced). A hand audit of every partial cut and a sample of whole-paragraph cuts found no prose removed.
 - Tuned on eval set?: no (tuned on the structured papers by inspection; no eval questions exist yet)
 - Revisit if: the residue shows up in retrieval, or a new GROBID version changes caption or heading output.
+
+## D-040: Resolve records into works with identifiers, titles and full-text MinHash
+- Date / Phase: 2026-10-28 / Phase 5
+- Status: proposed
+- Context: the 1,781 indexed records include arXiv versions, ACL and arXiv copies of one paper, and a few papers presented at two venues (D-009 and Phase 1's linked copies keep them on purpose). Identifiers group them into 1,414 groups but miss ≥ 111 same-paper pairs: only 166 of 676 ACL records carry an arXiv id, and S2 sometimes gives the two copies different ids. Titles change between versions ("Linear-Time WordPiece" became "Fast WordPiece").
+- Options considered:
+  1. Identifiers only. Pros: no false merges. Cons: misses those pairs, so the arXiv and ACL copies of one paper still fill the top-5.
+  2. Identifiers, then near-exact titles with shared authors, then full-text MinHash Jaccard with shared authors, with a guard against transitive chains. Pros: catches the missed copies; every fuzzy merge needs two kinds of evidence. Cons: thresholds to choose; MinHash is an estimate.
+  3. Embedding similarity of abstracts. Cons: semantic similarity is not identity. Two papers measuring tokenizer fertility read alike but are different work, and a same-author follow-up is closer still.
+- Choice: 2 (`src/rag/dedup/resolve.py`, `rag dedup run`):
+  - **ids**: the dup@5 judge's identifier links (`rag.common.identity`).
+  - **title**: `token_sort_ratio` ≥ 97 on normalised titles, author overlap ≥ 0.5 (surnames, share of the shorter list), years ≤ 2 apart.
+  - **minhash**: estimated Jaccard of 5-word shingles ≥ 0.5 with author overlap ≥ 0.5. A title ratio of 85–97 also needs Jaccard ≥ 0.2.
+  - **chain guard**: fuzzy edges are applied strongest first. One is refused if any pair of ID-linked units across the two sides has neither an edge nor Jaccard ≥ 0.2.
+  - **canonical member**: the ACL copy, else the latest arXiv version, else most chunks. The others are aliases; their chunks stay in the index and are masked at query time (no rebuild). Dense results equal those of a canonical-only index; BM25's IDF still counts alias chunks.
+  - **MinHash**: written in the repo (numpy, 256 hash functions, 64 bands × 4 rows) rather than datasketch, so the mechanism is visible.
+- Edge cases:
+  - **Kept v1s (D-009)** join their work as aliases, never deleted, so "what merging hides" stays answerable.
+  - **One paper at two venues** merges when its text is shared: `acl:2026.abjadnlp-1.2` and `acl:2026.loreslm-1.4` have Jaccard 0.86.
+  - **Same-author follow-ups** stay apart: high title ratio but Jaccard ~0.02, e.g. "Hard Non-Monotonic" vs "Exact Hard Monotonic Attention" (ratio 92).
+  - **Extended journal versions** merge only with identifier or text evidence; whether they should count as one paper is a policy question for the labelled pairs (D-042).
+  - **Companion papers** stay apart.
+- Evidence:
+  - `docs/figures/phase5-minhash.md`. MinHash mean absolute error is 0.026 at 16 hash functions and 0.008 at 256, tracking sqrt(J(1-J)/n). At 64×4 a pair at Jaccard 0.5 is a candidate with p 0.98, and at 0.2 with p 0.10.
+  - Jaccard of ID-linked vs same-author pairs with no shared id: ≥ 0.5 in 266/412 vs 118/11,914, and every one of those 118 was a missed copy.
+  - Result: 1,414 identifier groups become 1,298 works (125 title edges, 12 text edges, 0 refused). The ids step alone reproduces the judge's 1,414 groups exactly.
+- Tuned on eval set?: no. Thresholds come from the distributions above, without labels. Precision and recall wait for Sharad's labelled pairs (`rag dedup score`). Two near misses may be one paper and are among the candidates: "Improving Consistency in LLM Inference …" vs "Improving Self Consistency …" (ratio 79, Jaccard 0.48), and the RANLP vs arXiv "Vocabulary and BPE settings" pair (Jaccard 0.04).
+- Revisit if: labelled pairs show false merges or many misses; a new source adds records without identifiers.
+
+## D-041: Duplicates at query time: canonical mask, per-work cap, survey demotion, optional MMR
+- Date / Phase: 2026-10-28 / Phase 5
+- Status: proposed
+- Context: versions belong to one work and are handled at index time (D-040). Surveys restate other papers but are different work, so they can't be merged. Several chunks of one paper also fill the top-5, and D-031 counts those as duplicates too.
+- Options considered:
+  1. Hard per-work cap (N chunks per work) after hiding non-canonical members. Pros: simple, explainable, dup@5 = 0 at N = 1. Cons: hides further evidence from one paper: for "How does SentencePiece handle whitespace", 21 more SentencePiece chunks sit behind one.
+  2. Soft penalty (lower each repeat's score). Pros: keeps strong repeats. Cons: a tuning knob with no gold to tune it on yet.
+  3. MMR only. Pros: general diversity. Cons: diversity by embedding, not identity, so copies with slightly different text still get through.
+  - Surveys: demote below the restated work's chunk (chosen) vs remove the survey chunk (loses its synthesis) vs nothing.
+- Choice: 1 with N = 1 (`retrieve.dedup.per_work_cap`), canonical mask on. Survey demotion runs last and only within the top k: when W is shown below a survey chunk that restates it, the survey moves just below W. It is never dropped. MMR is available (`mmr_lambda`) but off. Hits list the chunks they hide (`rag inspect query`: "+N more from work:…"). Surveys are flagged by whole-word title cues, not by S2's "Review" type, which also tags ordinary research papers. A restatement needs a citation resolving to W plus cosine ≥ 0.87 to W's closest chunk; 0.87 is the 95th percentile of the same chunks' cosine to a random work (median 0.82).
+- Evidence: `results/2026-10-28-dedup-ablation.md`, 40 probe queries, hybrid:
+
+  | Condition | dup@5 | copy_dup@5 | copy_dup@5 (resolver's view) |
+  |---|---|---|---|
+  | No handling | 0.470 | 0.255 | 0.420 |
+  | Exact-ID merge only | 0.410 | 0.000 | 0.230 |
+  | + fuzzy + MinHash | 0.455 | 0.000 | 0.000 |
+  | + cap 1 | 0.000 | 0.000 | 0.000 |
+  | + survey demotion | 0.000 | 0.000 | 0.000 |
+  | + MMR 0.7 | 0.000 | 0.000 | 0.000 |
+
+  - **Exact-ID merge:** dup@5 falls by 0.060 [0.030, 0.095] (paired).
+  - **Fuzzy row:** its judged dup@5 rises again, a judge artefact: unlabelled copies count as different papers, and a hidden copy's slot goes to another chunk of the same paper.
+  - **Cap:** zeroes dup@5 by construction. Its cost can only show in Recall/MRR.
+  - **Survey demotion:** changed 0 of 40 top-5s after a fix. The first version demoted below sources ranked ~20th and pushed the survey out of the results.
+  - **MMR:** changed 11.
+- Tuned on eval set?: no (probe queries, not gold).
+- Revisit if: Recall@5/MRR on Sharad's questions drop with the cap (try N = 2, his "You do"); answers need several chunks from one paper.
+
+## D-042: The dup@5 judge adds Sharad's labelled pairs
+- Date / Phase: 2026-10-28 / Phase 5
+- Status: proposed
+- Context: D-031's judge uses identifiers only, so a copy they miss (≥ 111 pairs, D-040) counts as a different paper. dup@5 is then a lower bound, and fuzzy merging can even look harmful (D-041's table). The resolver's own works can't be the judge: they would score its false merges as wins.
+- Options considered:
+  1. Identifiers only (D-031). Pros: no human work. Cons: blind to the missed copies.
+  2. Identifiers + pairs Sharad labels `same` in `eval/pairs.jsonl`. Pros: independent of the resolver; it fills the gap where it matters. Cons: only as complete as the labels.
+  3. The resolver's works. Cons: circular.
+- Choice: 2 (`rag.eval.identity.identity_groups(records, pairs)`), used by `rag eval run` and `rag eval ablate`. `rag dedup pairs` samples candidates from four bands (ID-linked 5, fuzzy-merged 15, near misses 15, similar abstracts by different authors 20; one record pair per pair of works). It shows the evidence but not the verdict. `rag dedup score` reports resolver precision and recall per band.
+- Evidence: none yet: the labels are Sharad's (`eval/pairs_candidates.jsonl` → `eval/pairs.jsonl`).
+- Tuned on eval set?: n/a
+- Revisit if: labels disagree with identifier links (e.g. an S2 id shared by two papers).
