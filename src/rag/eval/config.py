@@ -5,6 +5,7 @@ from pydantic import Field
 from rag.common.schemas import StrictModel
 from rag.dedup.schemas import Step
 from rag.eval.schemas import QuestionType
+from rag.parse.schemas import ElementType
 from rag.retrieve.config import DedupSettings, Mode
 
 
@@ -15,6 +16,20 @@ class FindConfig(StrictModel):
 class BootstrapConfig(StrictModel):
     samples: int = Field(ge=100)
     seed: int
+
+
+class SilverConfig(StrictModel):
+    """`rag eval silver`: LLM-generated questions, never mixed with the gold set (D-044)."""
+
+    file: str  # under paths.eval
+    prompt: str  # file in paths.prompts
+    n: int = Field(ge=1)  # papers sampled, one chunk each
+    seed: int
+    elements: list[ElementType]
+    min_tokens: int = Field(ge=1)  # chunks shorter than this rarely hold a specific answer
+    max_tokens: int = Field(ge=16)  # generation budget
+    min_question_words: int = Field(ge=1)
+    max_evidence_words: int = Field(ge=1)
 
 
 class Condition(StrictModel):
@@ -47,4 +62,5 @@ class EvalConfig(StrictModel):
     mrr_cutoff: int = Field(ge=1)
     dup_k: int = Field(ge=1)
     bootstrap: BootstrapConfig
+    silver: SilverConfig
     ablations: dict[str, AblationConfig] = {}  # `rag eval ablate --name <key>`

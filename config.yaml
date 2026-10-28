@@ -233,6 +233,16 @@ eval:
   bootstrap:
     samples: 1000           # resamples of the question set for 95% intervals
     seed: 0
+  silver:                     # LLM-generated questions, apart from the gold set (D-044)
+    file: silver/questions.jsonl   # under paths.eval; meta.json beside it
+    prompt: silver_question.md
+    n: 90                     # papers sampled; ~10-20% are rejected by the checks
+    seed: 13
+    elements: [paragraph, table]
+    min_tokens: 80
+    max_tokens: 400
+    min_question_words: 5
+    max_evidence_words: 80
   ablations:
     dedup:                    # Phase 5 table (D-041); `rag eval ablate --name dedup`
       queries_file: phase-5-queries.txt   # under paths.probes; not gold

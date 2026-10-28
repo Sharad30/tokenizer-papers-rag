@@ -114,3 +114,34 @@ def ablate(
     out = run_ablation(config, name)
     typer.echo(out.with_suffix(".md").read_text(encoding="utf-8"))
     typer.echo(f"Results: {out}")
+
+
+@app.command()
+def silver(ctx: typer.Context) -> None:
+    """LLM-written questions from sampled chunks -> eval/silver/ (not gold; D-044)."""
+    from rag.chat.llm import make_llm
+    from rag.chat.prompts import load_prompt
+    from rag.common.io import read_jsonl
+    from rag.dedup.files import SURVEYS, WORKS
+    from rag.dedup.schemas import Survey, Work
+    from rag.eval import silver as silver_mod
+
+    config = get_config(ctx)
+    cfg = config.eval.silver
+    works_path = config.paths.works / WORKS
+    if not works_path.is_file():
+        typer.echo(
+            "No works: run `rag dedup run` first (silver samples canonical records).", err=True
+        )
+        raise typer.Exit(1)
+    canonical = {w.canonical for w in read_jsonl(works_path, Work)}
+    surveys = {s.record_id for s in read_jsonl(config.paths.works / SURVEYS, Survey)}
+    texts = _chunk_texts(config)
+    chunks = [ic.chunk for ic in texts]
+    sampled = silver_mod.sample_chunks(chunks, canonical, surveys, cfg)
+    llm = make_llm(config.chat)
+    prompt = load_prompt(config.paths.prompts, cfg.prompt)
+    questions, reasons = silver_mod.generate(sampled, llm, prompt, texts, cfg)
+    path = config.paths.eval / cfg.file
+    silver_mod.write(path, questions, reasons, len(sampled), llm, prompt, cfg.seed)
+    typer.echo(f"{len(questions)} of {len(sampled)} kept -> {path}; rejected: {reasons}")

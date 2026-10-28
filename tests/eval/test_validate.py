@@ -25,6 +25,17 @@ def eval_config() -> EvalConfig:
         mrr_cutoff=3,
         dup_k=2,
         bootstrap={"samples": 100, "seed": 0},
+        silver={
+            "file": "silver/questions.jsonl",
+            "prompt": "silver_question.md",
+            "n": 1,
+            "seed": 0,
+            "elements": ["paragraph"],
+            "min_tokens": 1,
+            "max_tokens": 100,
+            "min_question_words": 3,
+            "max_evidence_words": 40,
+        },
     )
 
 
