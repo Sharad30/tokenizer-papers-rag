@@ -22,7 +22,9 @@ from rag.retrieve.config import DedupSettings, Mode, RetrieveConfig
 from rag.retrieve.dense import DenseIndex, Encoder, make_encoder, model_slug
 from rag.retrieve.fusion import rrf
 from rag.retrieve.ranking import top_k
+from rag.retrieve.rerank import CrossEncoderScorer, Scorer, rerank
 from rag.retrieve.schemas import Hit, IndexMeta, Retrieval
+from rag.retrieve.text import chunk_text
 
 log = logging.getLogger(__name__)
 
@@ -53,6 +55,7 @@ class Retriever:
         dense: DenseIndex | None = None,
         encoder: Encoder | None = None,
         works: WorkMap | None = None,
+        reranker: Scorer | None = None,
     ) -> None:
         self.chunks = chunks
         self.config = config
@@ -65,13 +68,27 @@ class Retriever:
         if config.dedup.enabled and works is None:
             raise WorksUnavailable("retrieve.dedup.enabled needs the works: run `rag dedup run`")
         self.works = works if config.dedup.enabled else None
+        self.reranker = reranker
+        if config.rerank.enabled and reranker is None:
+            self.reranker = CrossEncoderScorer(config.rerank)
         # Fixed per corpus, so computed once rather than per query.
         self._canonical = works.canonical_mask(chunks) if self.works is not None else None
 
     def with_dedup(self, settings: DedupSettings, works: WorkMap | None) -> "Retriever":
         """The same indexes with other duplicate handling (for the Phase 5 ablation)."""
         config = self.config.model_copy(update={"dedup": settings})
-        return Retriever(self.chunks, config, self.bm25, self.dense, self.encoder, works)
+        return Retriever(
+            self.chunks, config, self.bm25, self.dense, self.encoder, works, self.reranker
+        )
+
+    def with_rerank(self, enabled: bool, reranker: Scorer | None = None) -> "Retriever":
+        """The same indexes with the reranker on or off (for the Phase 6 comparison)."""
+        rerank = self.config.rerank.model_copy(update={"enabled": enabled})
+        config = self.config.model_copy(update={"rerank": rerank})
+        return Retriever(
+            self.chunks, config, self.bm25, self.dense, self.encoder, self.works,
+            reranker or self.reranker,
+        )  # fmt: skip
 
     @classmethod
     def load(
@@ -146,12 +163,17 @@ class Retriever:
             ranked = rrf(lists, self.config.rrf_k)
         else:
             ranked = [(i, float(scores[mode][i])) for i in lists[mode]]
+        rerank_scores: dict[int, float] = {}
+        if self.config.rerank.enabled and self.reranker is not None:
+            texts = _ChunkTexts(self.chunks)
+            ranked = rerank(ranked, query, texts, self.reranker, self.config.rerank.depth)
+            rerank_scores = dict(ranked[: self.config.rerank.depth])
         hidden: dict[int, list[int]] = {}
         if self.works is not None:
             vectors = self.dense.embeddings if self.dense is not None else None
             ranked, hidden = collapse(ranked, self.chunks, self.works, dedup, k, vectors)
         hits = [
-            self._hit(i, rank, score, lists, scores, hidden.get(i, []))
+            self._hit(i, rank, score, lists, scores, hidden.get(i, []), rerank_scores.get(i))
             for rank, (i, score) in enumerate(ranked[:k], 1)
         ]
         # Each list is already sorted, so its first entry is that retriever's best.
@@ -166,17 +188,32 @@ class Retriever:
             have.add("dense")
         return have
 
-    def _hit(self, i: int, rank: int, score: float, lists, scores, hidden: list[int]) -> Hit:
+    def _hit(
+        self, i: int, rank: int, score: float, lists, scores, hidden: list[int], reranked
+    ) -> Hit:
         positions = {name: ranked.index(i) + 1 for name, ranked in lists.items() if i in ranked}
+        per_retriever = {name: float(s[i]) for name, s in scores.items()}
+        if reranked is not None:
+            per_retriever["rerank"] = reranked
         return Hit(
             chunk=self.chunks[i],
             rank=rank,
             score=score,
             ranks=positions,
-            scores={name: float(s[i]) for name, s in scores.items()},
+            scores=per_retriever,
             work_id=self.works.work_of(self.chunks[i]) if self.works is not None else None,
             hidden=[self.chunks[j].chunk_id for j in hidden],
         )
+
+
+class _ChunkTexts:
+    """chunk position -> "header\ntext", computed only for the chunks reranked."""
+
+    def __init__(self, chunks: list[Chunk]) -> None:
+        self._chunks = chunks
+
+    def __getitem__(self, i: int) -> str:
+        return chunk_text(self._chunks[i], with_header=True)
 
 
 def read_meta(index_dir: Path) -> IndexMeta:

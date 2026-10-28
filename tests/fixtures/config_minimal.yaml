@@ -159,6 +159,13 @@ retrieve:
     per_work_cap: 1
     survey_demotion: true
     mmr_lambda: null
+  rerank:
+    enabled: false
+    model: test/fake-reranker
+    depth: 3
+    max_length: 64
+    batch_size: 2
+    device: cpu
 chat:
   provider: ollama
   ollama:

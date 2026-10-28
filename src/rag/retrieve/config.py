@@ -19,6 +19,17 @@ class DedupSettings(StrictModel):
     mmr_lambda: float | None = Field(default=None, ge=0, le=1)  # None = off
 
 
+class RerankConfig(StrictModel):
+    """Cross-encoder over the fused top `depth` (D-043)."""
+
+    enabled: bool
+    model: str
+    depth: int = Field(ge=1)  # candidates reranked; the rest keep their fused order
+    max_length: int = Field(ge=8)  # tokens per (query, chunk) pair
+    batch_size: int = Field(ge=1)
+    device: str
+
+
 class RetrieveConfig(StrictModel):
     default_mode: Mode
     default_k: int = Field(ge=1)
@@ -26,3 +37,4 @@ class RetrieveConfig(StrictModel):
     candidates: int = Field(ge=1)
     rrf_k: float = Field(gt=0)  # RRF's constant: larger = flatter rank weights
     dedup: DedupSettings
+    rerank: RerankConfig

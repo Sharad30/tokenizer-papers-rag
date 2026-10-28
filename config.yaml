@@ -309,6 +309,13 @@ retrieve:
     per_work_cap: 1           # chunks per paper in the results; 0 = no cap
     survey_demotion: true     # a survey restating W ranks below W's chunk
     mmr_lambda: null          # MMR off; 0-1 = weight on relevance vs novelty
+  rerank:                     # cross-encoder over the fused candidates (D-043)
+    enabled: false
+    model: BAAI/bge-reranker-base
+    depth: 50                 # PLAN: top 30-50
+    max_length: 512           # model card example
+    batch_size: 16
+    device: cpu
 
 chat:
   provider: ollama            # ollama | anthropic (D-032)
