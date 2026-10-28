@@ -61,7 +61,10 @@ def main() -> None:
             return_token_type_ids=False,
         )
         with torch.no_grad():
-            return model(**inputs).last_hidden_state[:, 0, :].numpy()
+            # Copy the CLS rows out: a numpy view would keep the whole
+            # batch x tokens x 768 tensor alive, and 90k chunks of those
+            # exhaust memory (the first full build was killed at 17k).
+            return model(**inputs).last_hidden_state[:, 0, :].numpy().copy()
 
     out = []
     if args.one_at_a_time:
@@ -73,10 +76,17 @@ def main() -> None:
             timings.append((time.perf_counter() - tick) * 1000)
         report["encode_ms"] = timings
     else:
+        # Longest first, as sentence-transformers does: similar lengths in a
+        # batch means less padding. Rows go back to input order below.
+        order = sorted(range(len(texts)), key=lambda i: -lengths[i])
         for start in range(0, len(texts), args.batch_size):
-            out.append(embed(texts[start : start + args.batch_size]))
+            batch = order[start : start + args.batch_size]
+            out.append(embed([texts[i] for i in batch]))
             done = min(start + args.batch_size, len(texts))
             print(f"specter2: {done}/{len(texts)}", file=sys.stderr, flush=True)
+        vectors = np.concatenate(out)
+        out = [np.empty_like(vectors)]
+        out[0][order] = vectors
     np.save(args.output, np.concatenate(out).astype(np.float32))
     with open(args.report, "w", encoding="utf-8") as f:
         json.dump(report, f)
