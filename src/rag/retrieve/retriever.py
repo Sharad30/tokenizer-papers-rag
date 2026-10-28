@@ -81,6 +81,12 @@ class Retriever:
             self.chunks, config, self.bm25, self.dense, self.encoder, works, self.reranker
         )
 
+    def with_encoder(self, encoder: Encoder) -> "Retriever":
+        """The same indexes with another query encoder (e.g. without the query prompt)."""
+        return Retriever(
+            self.chunks, self.config, self.bm25, self.dense, encoder, self.works, self.reranker
+        )
+
     def with_rerank(self, enabled: bool, reranker: Scorer | None = None) -> "Retriever":
         """The same indexes with the reranker on or off (for the Phase 6 comparison)."""
         rerank = self.config.rerank.model_copy(update={"enabled": enabled})

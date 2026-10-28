@@ -270,6 +270,23 @@ eval:
           label: + MMR (lambda 0.7)
           steps: [ids, title, minhash]
           dedup: {enabled: true, canonical_only: true, per_work_cap: 1, survey_demotion: true, mmr_lambda: 0.7}
+    embeddings:               # Phase 6 table (D-043); `rag eval ablate --name embeddings`
+      queries_file: phase-5-queries.txt   # probe queries: dup@5 and latency
+      mode: hybrid
+      question_files:         # scored separately, never pooled
+        gold: questions.jsonl            # Sharad's (when it exists)
+        silver: silver/questions.jsonl   # LLM-written (D-044)
+      conditions:             # all with Phase 5 duplicate handling on (deployed)
+        - {name: bm25, label: BM25 only, mode: bm25}
+        - {name: small_dense, label: bge-small dense, dense_model: bge_small, mode: dense}
+        - {name: small_hybrid, label: bge-small hybrid (deployed), dense_model: bge_small}
+        - {name: base_dense, label: bge-base dense, dense_model: bge_base, mode: dense}
+        - {name: base_hybrid, label: bge-base hybrid, dense_model: bge_base}
+        - {name: specter2_dense, label: SPECTER2 dense, dense_model: specter2, mode: dense}
+        - {name: specter2_hybrid, label: SPECTER2 hybrid, dense_model: specter2}
+        - {name: small_hybrid_rerank, label: bge-small hybrid + reranker, dense_model: bge_small, rerank: true}
+        - {name: base_hybrid_rerank, label: bge-base hybrid + reranker, dense_model: bge_base, rerank: true}
+        - {name: small_dense_no_prompt, label: bge-small dense without query prompt, dense_model: bge_small, mode: dense, query_prompt: ""}
 
 index:
   bm25:

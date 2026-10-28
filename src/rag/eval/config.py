@@ -33,17 +33,24 @@ class SilverConfig(StrictModel):
 
 
 class Condition(StrictModel):
-    """One row of an ablation table."""
+    """One row of an ablation table. Unset fields mean the deployed configuration."""
 
     name: str
     label: str  # as shown in the table
-    steps: list[Step] = []  # resolver steps that build the works
-    dedup: DedupSettings  # query-time settings (retrieve.dedup)
+    steps: list[Step] | None = None  # resolver steps that build the works (default: dedup.steps)
+    dedup: DedupSettings | None = None  # query-time settings (default: retrieve.dedup)
+    dense_model: str | None = None  # one of index.dense_models (default: index.dense_model)
+    mode: Mode | None = None  # default: the ablation's mode
+    rerank: bool = False  # cross-encoder over the fused candidates (retrieve.rerank)
+    query_prompt: str | None = None  # override the dense model's query prompt ("" = none)
 
 
 class AblationConfig(StrictModel):
-    queries_file: str  # under paths.probes
+    queries_file: str  # under paths.probes: probe queries (dup@k, latency), not gold
     mode: Mode | None = None  # default: retrieve.default_mode
+    # Question sets scored for Recall/MRR, label -> file under paths.eval; missing
+    # files are skipped. Default: {"gold": eval.questions_file}.
+    question_files: dict[str, str] = {}
     conditions: list[Condition] = Field(min_length=1)
 
 
