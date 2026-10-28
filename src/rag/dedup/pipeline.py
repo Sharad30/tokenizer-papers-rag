@@ -23,6 +23,7 @@ from rag.common.io import file_sha256, read_jsonl, write_json, write_jsonl, writ
 from rag.common.provenance import git_commit
 from rag.common.stats import stage_stats
 from rag.dedup.config import DedupConfig
+from rag.dedup.files import META, RECORD_WORK, RESTATEMENTS, REVIEW, SURVEYS, WORKS
 from rag.dedup.minhash import MinHasher, shingle_hashes, shingles
 from rag.dedup.resolve import Resolution, resolve
 from rag.dedup.schemas import Restatement, Work, WorksMeta
@@ -33,13 +34,6 @@ from rag.retrieve.dense import DenseIndex
 from rag.retrieve.retriever import IndexUnavailable, dense_dir, read_meta
 
 log = logging.getLogger(__name__)
-
-WORKS = "works.jsonl"
-RECORD_WORK = "record_work.json"
-SURVEYS = "surveys.jsonl"
-RESTATEMENTS = "restatements.jsonl"
-REVIEW = "review.md"
-META = "meta.json"
 
 
 def indexed_records(config: Config) -> list[ManifestRecord]:

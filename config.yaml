@@ -245,6 +245,12 @@ retrieve:
   default_k: 10
   candidates: 100             # each retriever's depth into fusion (D-030)
   rrf_k: 60                   # Cormack et al. 2009
+  dedup:                      # query-time duplicate handling (D-041)
+    enabled: true             # false = Phase 4 behaviour
+    canonical_only: true      # hide old versions and venue/preprint copies
+    per_work_cap: 1           # chunks per paper in the results; 0 = no cap
+    survey_demotion: true     # a survey restating W ranks below W's chunk
+    mmr_lambda: null          # MMR off; 0-1 = weight on relevance vs novelty
 
 chat:
   provider: ollama            # ollama | anthropic (D-032)

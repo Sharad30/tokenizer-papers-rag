@@ -31,6 +31,9 @@ class Hit(StrictModel):
     # side by `rag inspect query`.
     ranks: dict[str, int] = {}
     scores: dict[str, float] = {}
+    work_id: str | None = None  # when duplicate handling is on (D-041)
+    # Chunks of the same work over the per-work cap, hidden behind this hit.
+    hidden: list[str] = []
 
 
 class Retrieval(StrictModel):

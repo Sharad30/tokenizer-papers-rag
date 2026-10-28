@@ -142,6 +142,12 @@ retrieve:
   default_k: 3
   candidates: 5
   rrf_k: 60
+  dedup:
+    enabled: false
+    canonical_only: true
+    per_work_cap: 1
+    survey_demotion: true
+    mmr_lambda: null
 chat:
   provider: ollama
   ollama:

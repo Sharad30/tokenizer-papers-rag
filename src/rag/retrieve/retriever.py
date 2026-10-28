@@ -2,7 +2,8 @@
 
 `retrieve(query, k, mode, allow)` returns ranked chunks with every
 retriever's rank and score, so the eval harness, `rag inspect query` and
-the Phase 7 chat all see the same results.
+the Phase 7 chat all see the same results. With `retrieve.dedup.enabled`,
+duplicates are handled between ranking and the top-k cut (`collapse`, D-041).
 """
 
 import logging
@@ -16,7 +17,8 @@ from rag.common.io import file_sha256, read_jsonl
 from rag.parse.pipeline import CHUNKS, step_dir
 from rag.parse.schemas import Chunk
 from rag.retrieve.bm25 import Bm25Index
-from rag.retrieve.config import Mode, RetrieveConfig
+from rag.retrieve.collapse import WorkMap, WorksUnavailable, collapse
+from rag.retrieve.config import DedupSettings, Mode, RetrieveConfig
 from rag.retrieve.dense import DenseIndex, Encoder, SentenceTransformerEncoder, model_slug
 from rag.retrieve.fusion import rrf
 from rag.retrieve.ranking import top_k
@@ -48,6 +50,7 @@ class Retriever:
         bm25: Bm25Index | None = None,
         dense: DenseIndex | None = None,
         encoder: Encoder | None = None,
+        works: WorkMap | None = None,
     ) -> None:
         self.chunks = chunks
         self.config = config
@@ -57,6 +60,16 @@ class Retriever:
         for index in (bm25, dense):
             if index is not None and index.chunk_ids != [c.chunk_id for c in chunks]:
                 raise IndexUnavailable("index rows don't line up with the chunks: run `rag index`")
+        if config.dedup.enabled and works is None:
+            raise WorksUnavailable("retrieve.dedup.enabled needs the works: run `rag dedup run`")
+        self.works = works if config.dedup.enabled else None
+        # Fixed per corpus, so computed once rather than per query.
+        self._canonical = works.canonical_mask(chunks) if self.works is not None else None
+
+    def with_dedup(self, settings: DedupSettings, works: WorkMap | None) -> "Retriever":
+        """The same indexes with other duplicate handling (for the Phase 5 ablation)."""
+        config = self.config.model_copy(update={"dedup": settings})
+        return Retriever(self.chunks, config, self.bm25, self.dense, self.encoder, works)
 
     @classmethod
     def load(cls, config: Config, modes: set[str], encoder: Encoder | None = None) -> "Retriever":
@@ -75,7 +88,10 @@ class Retriever:
         # A --limit index covers a subset: keep exactly its chunks, in its order.
         by_id = {c.chunk_id: c for c in read_jsonl(chunks_path, Chunk)}
         ids = (bm25 or dense).chunk_ids
-        return cls([by_id[i] for i in ids], config.retrieve, bm25, dense, encoder)
+        works = (
+            WorkMap.load(config.paths.works, chunks_path) if config.retrieve.dedup.enabled else None
+        )
+        return cls([by_id[i] for i in ids], config.retrieve, bm25, dense, encoder, works)
 
     def retrieve(
         self,
@@ -99,6 +115,9 @@ class Retriever:
         if not NEEDS[mode] <= self._available():
             raise IndexUnavailable(f"mode {mode!r} needs the {sorted(NEEDS[mode])} index(es)")
         mask = np.array([allow(c) for c in self.chunks]) if allow else None
+        dedup = self.config.dedup
+        if self._canonical is not None and dedup.canonical_only:
+            mask = self._canonical if mask is None else mask & self._canonical
         depth = max(k, self.config.candidates)
         lists: dict[str, list[int]] = {}
         scores: dict[str, np.ndarray] = {}
@@ -111,11 +130,16 @@ class Retriever:
             lists["dense"] = top_k(scores["dense"], depth, mask).tolist()
 
         if mode == "hybrid":
-            ranked = rrf(lists, self.config.rrf_k)[:k]
+            ranked = rrf(lists, self.config.rrf_k)
         else:
-            ranked = [(i, float(scores[mode][i])) for i in lists[mode][:k]]
+            ranked = [(i, float(scores[mode][i])) for i in lists[mode]]
+        hidden: dict[int, list[int]] = {}
+        if self.works is not None:
+            vectors = self.dense.embeddings if self.dense is not None else None
+            ranked, hidden = collapse(ranked, self.chunks, self.works, dedup, k, vectors)
         hits = [
-            self._hit(i, rank, score, lists, scores) for rank, (i, score) in enumerate(ranked, 1)
+            self._hit(i, rank, score, lists, scores, hidden.get(i, []))
+            for rank, (i, score) in enumerate(ranked[:k], 1)
         ]
         # Each list is already sorted, so its first entry is that retriever's best.
         top = {name: float(scores[name][ids[0]]) for name, ids in lists.items() if ids}
@@ -129,7 +153,7 @@ class Retriever:
             have.add("dense")
         return have
 
-    def _hit(self, i: int, rank: int, score: float, lists, scores) -> Hit:
+    def _hit(self, i: int, rank: int, score: float, lists, scores, hidden: list[int]) -> Hit:
         positions = {name: ranked.index(i) + 1 for name, ranked in lists.items() if i in ranked}
         return Hit(
             chunk=self.chunks[i],
@@ -137,6 +161,8 @@ class Retriever:
             score=score,
             ranks=positions,
             scores={name: float(s[i]) for name, s in scores.items()},
+            work_id=self.works.work_of(self.chunks[i]) if self.works is not None else None,
+            hidden=[self.chunks[j].chunk_id for j in hidden],
         )
 
 
