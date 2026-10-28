@@ -31,10 +31,11 @@ own, plus a `stats.json`. Every setting is in `config.yaml`.
                       │ data/parsed/papers/  (sections, references)
                       ▼
  ┌─────────────────────────────────────────┐
- │ 5 DEDUP  (not built yet)  rag dedup     │  records → works (versions,
+ │ 5 DEDUP                  rag dedup run  │  records → works (versions,
  │   src/rag/dedup/                        │  venue copies, restatements)
  └────────────────────┬────────────────────┘
-                      │ data/works/   (today the indexes read chunks directly)
+                      │ data/works/  works.jsonl, record_work.json, restatements
+                      │ (indexes still cover every chunk; the Retriever hides aliases)
                       ▼
  ┌─────────────────────────────────────────┐
  │ 4 INDEX                  rag index      │
@@ -49,6 +50,8 @@ own, plus a `stats.json`. Every setting is in `config.yaml`.
  │   query ─┬─ BM25 top 100 ──┐            │
  │          └─ dense top 100 ─┴─ RRF (k=60)│──▶ hits, each with both ranks/scores
  │   + best BM25 / dense score in corpus   │──▶ top_scores (for the gate)
+ │   + duplicates (D-041): hide aliases,   │
+ │     1 chunk per work, surveys below src │
  └──────────┬───────────────────┬──────────┘
             │                   │
  EVAL LOOP  ▼                   ▼  ONLINE CHAT (one turn)
@@ -150,12 +153,21 @@ answer evaluation that reads the chat transcripts.
 - **Look at:** `uv run rag inspect query "<question>"`: both retrievers'
   ranks side by side; `docs/figures/phase4-*.md`.
 
-### 5. Dedup (planned)
-- **Does:** clusters records into works: arXiv versions, arXiv ↔ ACL
-  copies, restatements.
-- **Code:** `src/rag/dedup/` is a stub today.
-- **Why it matters now:** duplicates take slots in the top 6, and a model
-  citing two copies of one paper creates false corroboration.
+### 5. Dedup: records into works
+- **Does:** clusters the 1,781 indexed records into 1,298 works: arXiv
+  versions, arXiv ↔ ACL copies, one paper at two venues. Identifiers first,
+  then near-exact titles and shared full text (MinHash), each with shared
+  authors, behind a guard against transitive chains. Flags surveys and the
+  works their chunks restate. At query time the Retriever hides
+  non-canonical records, keeps one chunk per work and ranks a restating
+  survey chunk below its source.
+- **Code:** `src/rag/dedup/` (`resolve.py`, `minhash.py`, `surveys.py`,
+  `pairs.py`), `src/rag/retrieve/collapse.py`, `src/rag/eval/ablation.py`.
+- **Output:** `data/works/` (`review.md` lists every fuzzy merge),
+  `results/<date>-dedup-ablation.{json,md}`.
+- **Decisions:** D-040 to D-042. **Note:** `notes/phase-5-dedup.md`.
+- **Look at:** `uv run rag inspect work <record_id>`; `rag inspect query`
+  ("+N more from work:…"); the "Versions and duplicates" UI page.
 
 ### 7. Chat: a grounded answer with citations
 - **Does:** steps a–g in the diagram.
@@ -176,7 +188,7 @@ answer evaluation that reads the chat transcripts.
 | A known paper never appears | 1 Collect | is it in `manifest.csv`, accepted, `included_in_index`? |
 | Garbled or merged text in a source | 2 Parse | `rag inspect paper <id>` |
 | The right paper is indexed but not retrieved | 4 Retriever | `rag inspect query`: BM25 vs dense ranks |
-| The same paper cited twice | 5 Dedup | the identity of the two record ids |
+| The same paper cited twice | 5 Dedup | `rag inspect work <id>` for both: one work or two? |
 | A follow-up retrieves the wrong topic | 7a Rewrite | `--debug` shows the standalone query |
 | A wrong refusal, or a confident answer to a false premise | 7c/7f gates | `--debug` best cosine vs 0.70; raw answer |
 | A citation that doesn't support its sentence | 7e Generate | `--show-sources`; the prompt in `prompts/` |
