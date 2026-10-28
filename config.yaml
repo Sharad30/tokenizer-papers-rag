@@ -196,6 +196,13 @@ dedup:
     min_jaccard: 0.5          # no unlinked same-author pair above this was a different paper
   cluster_floor: 0.2          # chain guard: evidence needed between every pair of units
   canonical_order: [acl, arxiv, s2]   # venue version first, then latest arXiv version
+  surveys:
+    title_cues: [survey, overview, review, primer, tutorial, brief history]
+    reference_title_min: 95   # a cited title -> indexed record without arXiv id or DOI
+    # Survey chunk vs the cited work's closest chunk (bge-small). A random
+    # work's closest chunk scores 0.82 median, 0.87 at the 95th percentile;
+    # cited works 0.88 median (measured on the Brief History survey, D-041).
+    restate_min: 0.87
 
 eval:
   questions_file: questions.jsonl   # Sharad's questions, under paths.eval

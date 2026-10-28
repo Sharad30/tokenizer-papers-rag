@@ -33,6 +33,21 @@ class Work(StrictModel):
     rejected: list[Edge]  # fuzzy edges the chain guard refused, touching this work
 
 
+class Survey(StrictModel):
+    record_id: str
+    cues: list[str]  # the title words that flagged it
+
+
+class Restatement(StrictModel):
+    """A survey chunk that says what work W says, citing W."""
+
+    chunk_id: str
+    work_id: str
+    cosine: float  # dense cosine to W's closest chunk
+    ref_id: str  # the bibliography entry the citation points to
+    matched_by: str  # how that entry was matched to W: arxiv, doi or title
+
+
 class WorksMeta(StrictModel):
     """What the works were built from: the Retriever refuses stale works files."""
 

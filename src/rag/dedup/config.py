@@ -33,6 +33,17 @@ class MinHashConfig(StrictModel):
         return self
 
 
+class SurveyConfig(StrictModel):
+    # Whole words in a title that make a paper a survey. Not S2's "Review"
+    # publication type: it also tags ordinary research papers (D-041).
+    title_cues: list[str]
+    # Bibliography entry -> indexed record by title (fuzz.ratio, 0-100), when
+    # it has no arXiv id or DOI.
+    reference_title_min: float = Field(ge=0, le=100)
+    # Dense cosine between a citing survey chunk and the cited work's closest chunk.
+    restate_min: float = Field(ge=-1, le=1)
+
+
 class DedupConfig(StrictModel):
     seed: int  # MinHash hash functions
     steps: list[Step]  # which resolver steps run (the ablation switches them off)
@@ -47,6 +58,7 @@ class DedupConfig(StrictModel):
     cluster_floor: float = Field(ge=0, le=1)
     # Which member represents a work, by source; ties: latest arXiv version, then most chunks.
     canonical_order: list[Literal["acl", "arxiv", "s2"]]
+    surveys: SurveyConfig
 
     @model_validator(mode="after")
     def _review_below_min(self) -> "DedupConfig":

@@ -25,14 +25,19 @@ from rag.common.stats import stage_stats
 from rag.dedup.config import DedupConfig
 from rag.dedup.minhash import MinHasher, shingle_hashes, shingles
 from rag.dedup.resolve import Resolution, resolve
-from rag.dedup.schemas import Work, WorksMeta
-from rag.parse.pipeline import CHUNKS, step_dir
-from rag.parse.schemas import Chunk
+from rag.dedup.schemas import Restatement, Work, WorksMeta
+from rag.dedup.surveys import ReferenceResolver, find_restatements, find_surveys
+from rag.parse.pipeline import CHUNKS, REFERENCES, step_dir
+from rag.parse.schemas import Chunk, Reference
+from rag.retrieve.dense import DenseIndex
+from rag.retrieve.retriever import IndexUnavailable, dense_dir, read_meta
 
 log = logging.getLogger(__name__)
 
 WORKS = "works.jsonl"
 RECORD_WORK = "record_work.json"
+SURVEYS = "surveys.jsonl"
+RESTATEMENTS = "restatements.jsonl"
 REVIEW = "review.md"
 META = "meta.json"
 
@@ -93,6 +98,7 @@ def run(config: Config, limit: int | None) -> Resolution:
             ),
         )
         stats["counts"].update(resolution.counts)
+        stats["counts"].update(_surveys(config, records, chunks, resolution.record_work, out))
         sizes = Counter(len(w.members) for w in resolution.works)
         stats["counts"].update({f"works.size_{n}": c for n, c in sorted(sizes.items())})
     log.info(
@@ -102,6 +108,41 @@ def run(config: Config, limit: int | None) -> Resolution:
         resolution.counts["works.multi_member"],
     )
     return resolution
+
+
+def _surveys(
+    config: Config,
+    records: Sequence[ManifestRecord],
+    chunks: Sequence[Chunk],
+    record_work: dict[str, str],
+    out: Path,
+) -> dict[str, int]:
+    cfg = config.dedup.surveys
+    surveys = find_surveys(records, cfg)
+    write_jsonl(out / SURVEYS, surveys)
+    restatements: list[Restatement] = []
+    try:
+        # Needs the dense index over these exact chunks; it has the vectors.
+        meta = read_meta(dense_dir(config))
+        if meta.chunks_sha256 != file_sha256(step_dir(config, "chunk") / CHUNKS):
+            raise IndexUnavailable("dense index is stale")
+        dense = DenseIndex.load(dense_dir(config))
+    except IndexUnavailable as exc:
+        log.warning("No restatements (%s): run `rag index dense`, then `rag dedup run`", exc)
+    else:
+        references = read_jsonl(step_dir(config, "structure") / REFERENCES, Reference)
+        restatements = find_restatements(
+            surveys,
+            chunks,
+            references,
+            ReferenceResolver(records, cfg.reference_title_min),
+            record_work,
+            dense.embeddings,
+            dense.chunk_ids,
+            cfg.restate_min,
+        )
+    write_jsonl(out / RESTATEMENTS, restatements)
+    return {"surveys": len(surveys), "restatements": len(restatements)}
 
 
 def review_markdown(works: Sequence[Work], records: Sequence[ManifestRecord]) -> str:
