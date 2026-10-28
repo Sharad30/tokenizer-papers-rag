@@ -1,4 +1,4 @@
-"""CLI plumbing shared by every command: config access, the --limit option, stubs."""
+"""CLI plumbing shared by every command: config access and the --limit option."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -44,11 +44,3 @@ def get_config(ctx: typer.Context) -> Config:
     if state is None:
         raise RuntimeError("AppState missing: commands must run under the root `rag` app.")
     return state.config()
-
-
-def print_stub(command: str, phase: str, reads: str, writes: str, limit: int | None) -> None:
-    """Say what a not-yet-built command will do, so `make smoke` can chain every stage.
-
-    Replaced by the real implementation in the phase named here.
-    """
-    typer.echo(f"[stub] rag {command} (Phase {phase}): {reads} -> {writes}, limit={limit}")

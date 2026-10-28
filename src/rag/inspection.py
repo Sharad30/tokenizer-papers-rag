@@ -9,7 +9,7 @@ from typing import Annotated
 
 import typer
 
-from rag.common.cli import get_config, print_stub
+from rag.common.cli import get_config
 
 app = typer.Typer(
     help="Inspect intermediate outputs: papers, works, queries.", no_args_is_help=True
@@ -30,11 +30,12 @@ def paper(
 @app.command()
 def work(
     ctx: typer.Context,
-    work_id: Annotated[str, typer.Argument(help="work_id from the dedup clusters")],
+    work_id: Annotated[str, typer.Argument(help="work_id, or any member's record id")],
 ) -> None:
-    """Show one work's member records and why they were merged."""
-    config = get_config(ctx)
-    print_stub(f"inspect work {work_id}", "5", str(config.paths.works), "terminal", None)
+    """Show one work's member records, its canonical record, and why they were merged."""
+    from rag.dedup.show import render_work
+
+    typer.echo(render_work(get_config(ctx), work_id))
 
 
 @app.command()

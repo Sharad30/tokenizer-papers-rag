@@ -53,12 +53,6 @@ def test_config_show_round_trips(repo_config_path: Path) -> None:
     assert shown == load_config(repo_config_path)
 
 
-def test_stub_reports_what_it_reads(repo_config_path: Path) -> None:
-    result = runner.invoke(app, ["--config", str(repo_config_path), "inspect", "work", "w"])
-    assert result.exit_code == 0, result.output
-    assert "[stub] rag inspect work" in result.stdout
-
-
 def test_limit_must_be_positive(repo_config_path: Path) -> None:
     result = runner.invoke(app, ["--config", str(repo_config_path), "dedup", "run", "--limit", "0"])
     assert result.exit_code == 2

@@ -9,6 +9,7 @@ from rag.parse.chunker import HEADER_SEPARATOR
 from rag.retrieve.schemas import Hit
 
 PREVIEW_CHARS = 80
+HIDDEN_SHOWN = 3  # chunk ids listed per hit hidden by the per-work cap
 
 
 def _rank_score(hit: Hit, name: str, fmt: str) -> str:
@@ -34,4 +35,10 @@ def render_hits(query: str, mode: str, hits: list[Hit]) -> str:
         )
         lines.append(f"{'':>40}{title[:60]} | {section[:50]}")
         lines.append(f"{'':>40}{c.text.replace(chr(10), ' ')[:PREVIEW_CHARS]}")
+        if h.hidden:
+            # Over the per-work cap (D-041): same paper, not shown separately.
+            shown = ", ".join(h.hidden[:HIDDEN_SHOWN]) + (
+                ", …" if len(h.hidden) > HIDDEN_SHOWN else ""
+            )
+            lines.append(f"{'':>40}+{len(h.hidden)} more from {h.work_id}: {shown}")
     return "\n".join(lines)
