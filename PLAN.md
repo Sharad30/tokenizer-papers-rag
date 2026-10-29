@@ -405,6 +405,8 @@ Each fix gets a unit test from a real failing case. **Exit:** the Parse page's t
 
 **Exit.** Recommendation in DECISIONS.md; config updated.
 
+**Done 2026-10-29** (D-043, D-044, `notes/phase-6-embeddings.md`): `rag index dense --model bge_small|bge_base|specter2` (SPECTER2 in an isolated `uv` environment), an optional cross-encoder reranker, `rag eval silver` (66 LLM-written lookup questions), `rag eval ablate --name embeddings` with configured paired comparisons, and the term probe. On silver: the reranker is the only gain the data separates from zero (Recall@5 +0.182, ~4 s per query); bge-base and SPECTER2 don't beat bge-small; hybrid beats dense (+0.167) but BM25 alone beats hybrid (−0.106), likely the silver set's wording bias. Config unchanged (bge-small hybrid, reranker off) until Sharad's gold questions and his own recommendation. Changes from the plan: a silver set instead of waiting for gold; paired comparisons for every pair the decision rests on, not only the top two.
+
 ---
 
 ## Phase 7: Grounded multi-turn chat
