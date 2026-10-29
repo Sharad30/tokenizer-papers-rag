@@ -213,3 +213,21 @@ Phase: 5  ·  Type: result
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-10-29: My embedding recommendation (Phase 6)
+Phase: 6  ·  Type: decision
+
+### Prediction (Sharad):
+(before looking at gold numbers: will the silver ranking of conditions hold on eval/questions.jsonl? which comparison do you expect to flip?)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(silver: results/2026-10-29-embeddings-ablation.md; gold: rerun `rag eval ablate --name embeddings` once eval/questions.jsonl exists. Compare with your 2026-10-26 prediction above)
+
+### My recommendation (Sharad):
+(which model, hybrid or not, reranker or not; and when you'd choose differently, e.g. if latency mattered more. D-043 holds Claude's proposed draft: revise it to match)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
