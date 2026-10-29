@@ -1,0 +1,67 @@
+{
+ "created_at": "2026-10-29T07:51:20.383014Z",
+ "data": {
+  "models": [
+   {
+    "built_commit": "5689d8a2",
+    "deployed": true,
+    "dims": 384,
+    "kind": "sentence_transformers",
+    "minutes": 57.7,
+    "model": "BAAI/bge-small-en-v1.5",
+    "name": "bge_small",
+    "query_prompt": "Represent this sentence for searching relevant passages: ",
+    "size_mb": 145.2,
+    "status": "built",
+    "truncated": null
+   },
+   {
+    "built_commit": "ce2a2eb1",
+    "deployed": false,
+    "dims": 768,
+    "kind": "sentence_transformers",
+    "minutes": 129.1,
+    "model": "BAAI/bge-base-en-v1.5",
+    "name": "bge_base",
+    "query_prompt": "Represent this sentence for searching relevant passages: ",
+    "size_mb": 287.8,
+    "status": "built",
+    "truncated": 0
+   },
+   {
+    "built_commit": "8ad05db9",
+    "deployed": false,
+    "dims": 768,
+    "kind": "specter2",
+    "minutes": 75.8,
+    "model": "allenai/specter2_base",
+    "name": "specter2",
+    "query_prompt": "",
+    "size_mb": 287.8,
+    "status": "built",
+    "truncated": 44
+   },
+   {
+    "built_commit": "25dd9935",
+    "deployed": true,
+    "dims": null,
+    "kind": "keyword",
+    "minutes": 0.1,
+    "model": "bm25s (Lucene BM25)",
+    "name": "bm25",
+    "query_prompt": "",
+    "size_mb": 73.1,
+    "status": "built",
+    "truncated": null
+   }
+  ]
+ },
+ "git_commit": "936dc80cf24d57225848aa1955714bc363a46477-dirty",
+ "sources": {
+  "bge_base": "a0c8ae4834ebe58cf5687f93bf098233b5e89ae48ad01920f6f8a95bb9b10a59",
+  "bge_small": "9221e29e0f23aff90de6c12c6316b1cea1a13cd5dc58cb81ab0c0fbfef50ad48",
+  "bm25": "895036e0906d559333df471f36191efd6843b4913c99f6e5275629ade2aaa41b",
+  "specter2": "9ae85d9fdabc8c96758d012fb4df431189b742cb2124b47c9bc45992dc418fea"
+ },
+ "stage": "embeddings"
+}
