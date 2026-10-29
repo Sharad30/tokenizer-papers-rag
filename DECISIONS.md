@@ -635,7 +635,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   - Keep **bge-small** as the embedding model, in **hybrid** with BM25.
   - Turn the **reranker** on for the chat path if the gold set confirms the silver gain. It is off in config until Sharad decides.
   - No re-embedding, no new environment.
-- Evidence: `results/2026-10-29-embeddings-ablation.md` (commit a21ae9e first run, 3b713c6 rerun with paired differences; 66 silver questions, D-044). Paired differences, a minus b, 95% bootstrap:
+- Evidence: `results/2026-10-29-embeddings-ablation.md` (run from 3b713c6, committed in 8b388c8; the first run, from a21ae9e and committed in 344edcd, gave the same Recall/MRR; 66 silver questions, D-044). Paired differences, a minus b, 95% bootstrap:
   - **Reranker vs bge-small hybrid:** Recall@5 +0.182 [0.091, 0.288], MRR +0.200; 13 questions better, 1 worse. The only gain the data separates from zero. With the reranker, bge-small and bge-base tie on every question. Their top 5s still differ on 77 of 106 queries, but the cross-encoder brings the gold chunk to the same rank. So, under a reranker, the bigger embedding model buys nothing here.
   - **bge-base vs bge-small hybrid:** +0.030 [-0.045, 0.121]. Can't be told apart, at 2.2× the embedding time, twice the size and about twice the query latency.
   - **SPECTER2 vs bge-small hybrid:** Recall@5 +0.030 [-0.091, 0.167] but MRR −0.151 [-0.265, -0.035]. SPECTER2 dense alone reaches Recall@5 0.136. The term probe (`docs/figures/phase6-terms.md`) shows why: every term pair scores 0.80–0.98, so "SentencePiece / BPE" looks as close as "SentencePiece / sentence piece". Only 0.28 of its top 5 contain the query's exact term, against 0.68 for BM25.
@@ -674,7 +674,7 @@ deleted: a changed decision gets a new entry, and the old one is marked
   Output in `eval/silver/questions.jsonl` with `meta.json` (model, prompt sha256, seed, rejections), origin `silver_llm`. It is never pooled with gold. `rag eval validate` treats the question-mix minimums as warnings for an all-silver file.
 - Evidence:
   - 66 of 90 kept. Rejected: 18 pointing at the source, 4 evidence not in chunk, 1 unparseable, 1 Ollama error.
-  - Two runs gave the same 66 questions word for word.
+  - All 66 also appear, word for word, in an earlier run with a looser filter (75 kept): at temperature 0, generation repeats.
   - Median content-word overlap with the passage: 0.75.
 - Known biases:
   - One gold chunk per question, so another passage that also answers it counts as a miss (incomplete judgements). This lowers every condition, most of all the ones that find other good passages.
