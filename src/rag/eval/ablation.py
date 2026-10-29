@@ -101,7 +101,7 @@ class ConditionResult(StrictModel):
 
 
 class Comparison(StrictModel):
-    """The two best conditions by Recall@k on one question set, question by question."""
+    """Two conditions on one question set, question by question."""
 
     set: str
     a: str
@@ -124,7 +124,8 @@ class AblationResult(StrictModel):
     labelled_pairs: int  # pairs.jsonl lines the judge used
     works_meta: WorksMeta
     conditions: dict[str, ConditionResult]
-    comparison: Comparison | None = None
+    comparison: Comparison | None = None  # the top two by Recall@k
+    pairs: list[Comparison] = []  # the ablation's configured pairs
 
 
 def read_queries(path: Path) -> list[str]:
@@ -204,7 +205,7 @@ def run_ablation(config: Config, name: str, retriever: Retriever | None = None) 
         first = first or rows
         scored = {
             label: SetResult(
-                file=str(path),
+                file=_shown(path, config.paths.eval),
                 sha256=file_sha256(path),
                 n_questions=len(qs),
                 result=run_mode(timed, mode, qs, texts, judge, config.eval),
@@ -234,7 +235,7 @@ def run_ablation(config: Config, name: str, retriever: Retriever | None = None) 
         git_commit=git_commit(),
         config_hash=config_hash(config),
         config=config.model_dump(mode="json", exclude={"paths"}),
-        queries_file=str(queries_path),
+        queries_file=_shown(queries_path, config.paths.probes),
         queries_sha256=file_sha256(queries_path),
         n_queries=len(queries),
         labelled_pairs=len(labelled),
@@ -243,6 +244,7 @@ def run_ablation(config: Config, name: str, retriever: Retriever | None = None) 
         ),
         conditions=results,
         comparison=compare(results, config),
+        pairs=[c for a, b in ablation.pairs if (c := paired(results, config, a, b))],
     )
     out = results_path(config, name)
     write_json(out, result)
@@ -339,6 +341,11 @@ def _question_sets(config: Config, ablation: AblationConfig) -> dict[str, tuple[
     return out
 
 
+def _shown(path: Path, root: Path) -> str:
+    """A path as config names it (relative to its folder's parent), not this machine's."""
+    return str(path.relative_to(root.parent)) if path.is_relative_to(root.parent) else str(path)
+
+
 def _costs(config: Config, mode: str, model: str) -> list[Cost]:
     folders = []
     if mode in ("bm25", "hybrid"):
@@ -391,13 +398,20 @@ def _per_question(result: ModeResult) -> dict[str, dict[str, float]]:
     return {q.question_id: q.metrics for q in result.questions if q.scored and q.variant == "raw"}
 
 
-def compare(results: dict[str, ConditionResult], config: Config) -> Comparison | None:
-    """The two best conditions by Recall@k, on gold if it exists, else the first set."""
+def _set_label(results: dict[str, ConditionResult]) -> str | None:
+    """Gold if it exists, else the first set by name."""
     labels = {label for c in results.values() for label in c.sets}
     if not labels:
         return None
-    label = "gold" if "gold" in labels else sorted(labels)[0]
-    rk, mrr = f"recall@{config.eval.recall_k}", f"mrr@{config.eval.mrr_cutoff}"
+    return "gold" if "gold" in labels else sorted(labels)[0]
+
+
+def compare(results: dict[str, ConditionResult], config: Config) -> Comparison | None:
+    """The two best conditions by Recall@k, on gold if it exists, else the first set."""
+    label = _set_label(results)
+    if label is None:
+        return None
+    rk = f"recall@{config.eval.recall_k}"
 
     def recall(name: str) -> float:
         aggregates = results[name].sets[label].result.aggregates.get("overall", {})
@@ -406,7 +420,17 @@ def compare(results: dict[str, ConditionResult], config: Config) -> Comparison |
     ranked = sorted((n for n in results if label in results[n].sets), key=recall, reverse=True)
     if len(ranked) < 2:
         return None
-    a, b = ranked[0], ranked[1]
+    return paired(results, config, ranked[0], ranked[1])
+
+
+def paired(
+    results: dict[str, ConditionResult], config: Config, a: str, b: str
+) -> Comparison | None:
+    """a minus b on the shared questions, with a paired bootstrap interval."""
+    label = _set_label(results)
+    if label is None or label not in results[a].sets or label not in results[b].sets:
+        return None
+    rk, mrr = f"recall@{config.eval.recall_k}", f"mrr@{config.eval.mrr_cutoff}"
     qa = _per_question(results[a].sets[label].result)
     qb = _per_question(results[b].sets[label].result)
     shared = sorted(set(qa) & set(qb))
@@ -508,6 +532,20 @@ def table(result: AblationResult, config: Config) -> str:
             f"{rk} higher on {cmp.wins} questions, lower on {cmp.losses}, equal on {cmp.ties}. "
             "An interval that includes 0 means the data can't tell them apart.",
         ]
+    if result.pairs:
+        lines += [
+            "",
+            f"**Paired comparisons ({result.pairs[0].set}, a minus b):**",
+            "",
+            f"| a | b | {rk} | {mrr} | a higher / lower / equal |",
+            "|---|---|---|---|---|",
+        ]
+        for cmp in result.pairs:
+            a, b = result.conditions[cmp.a].label, result.conditions[cmp.b].label
+            lines.append(
+                f"| {a} | {b} | {_cell(cmp.diffs[rk])} | {_cell(cmp.diffs[mrr])} "
+                f"| {cmp.wins} / {cmp.losses} / {cmp.ties} |"
+            )
     lines += [
         "",
         f"- dup@{k} (D-031): share of the top {k} slots whose paper already appeared higher;",

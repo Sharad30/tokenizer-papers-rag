@@ -1,6 +1,6 @@
 """Config models for the eval set (the `eval:` section of config.yaml)."""
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from rag.common.schemas import StrictModel
 from rag.dedup.schemas import Step
@@ -52,6 +52,17 @@ class AblationConfig(StrictModel):
     # files are skipped. Default: {"gold": eval.questions_file}.
     question_files: dict[str, str] = {}
     conditions: list[Condition] = Field(min_length=1)
+    # Condition pairs (a, b) to compare question by question, besides the top
+    # two: the comparisons a decision rests on.
+    pairs: list[tuple[str, str]] = []
+
+    @model_validator(mode="after")
+    def _pairs_name_conditions(self) -> "AblationConfig":
+        names = {c.name for c in self.conditions}
+        unknown = sorted({n for pair in self.pairs for n in pair} - names)
+        if unknown:
+            raise ValueError(f"pairs name unknown conditions: {unknown}")
+        return self
 
 
 class EvalConfig(StrictModel):

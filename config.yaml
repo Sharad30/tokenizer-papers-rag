@@ -287,6 +287,13 @@ eval:
         - {name: small_hybrid_rerank, label: bge-small hybrid + reranker, dense_model: bge_small, rerank: true}
         - {name: base_hybrid_rerank, label: bge-base hybrid + reranker, dense_model: bge_base, rerank: true}
         - {name: small_dense_no_prompt, label: bge-small dense without query prompt, dense_model: bge_small, mode: dense, query_prompt: ""}
+      pairs:                    # compared question by question (a minus b)
+        - [small_hybrid_rerank, small_hybrid]   # does the reranker pay?
+        - [base_hybrid, small_hybrid]           # a bigger general model
+        - [specter2_hybrid, small_hybrid]       # a scientific model
+        - [small_hybrid, bm25]                  # does vector search add to keywords?
+        - [small_hybrid, small_dense]           # do keywords add to vectors?
+        - [small_dense, small_dense_no_prompt]  # bge's query instruction
 
 index:
   bm25:

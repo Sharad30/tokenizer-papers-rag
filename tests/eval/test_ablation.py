@@ -1,3 +1,5 @@
+import pytest
+
 from rag.eval.ablation import read_queries
 
 
@@ -90,3 +92,28 @@ def test_timed_retriever_adds_encoding_time_measured_elsewhere() -> None:
     assert timed.ms[0] >= 25.0 and timed.ms[1] < 25.0
     assert percentiles([10.0, 20.0, 30.0]) == {"p50": 20.0, "p95": 29.0, "n": 3.0}
     assert percentiles([]) == {}
+
+
+def test_paired_compares_the_named_conditions(repo_config_path) -> None:
+    from rag.common.config import load_config
+    from rag.eval.ablation import paired
+
+    config = load_config(repo_config_path)
+    results = {
+        "a": _condition("a", {"q1": 1.0, "q2": 1.0, "q3": 0.0}),
+        "b": _condition("b", {"q1": 0.0, "q2": 1.0, "q3": 0.0}),
+    }
+    cmp = paired(results, config, "a", "b")
+    assert (cmp.a, cmp.b, cmp.wins, cmp.losses, cmp.ties) == ("a", "b", 1, 0, 2)
+    assert abs(cmp.diffs["recall@5"].mean - 1 / 3) < 1e-9
+
+
+def test_pairs_must_name_conditions() -> None:
+    from pydantic import ValidationError
+
+    from rag.eval.config import AblationConfig
+
+    condition = {"name": "x", "label": "X"}
+    AblationConfig(queries_file="q.txt", conditions=[condition], pairs=[("x", "x")])
+    with pytest.raises(ValidationError, match="unknown conditions"):
+        AblationConfig(queries_file="q.txt", conditions=[condition], pairs=[("x", "y")])
