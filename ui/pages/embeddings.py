@@ -123,6 +123,31 @@ else:
             f"lower on {cmp.losses}, equal on {cmp.ties}. An interval containing 0 means "
             "the questions can't separate them."
         )
+    if result.pairs:
+        st.subheader("The comparisons the choice rests on")
+        st.dataframe(
+            [
+                {
+                    "a": result.conditions[p.a].label,
+                    "b": result.conditions[p.b].label,
+                    f"{rk}, a − b": (
+                        f"{p.diffs[rk].mean:+.3f} "
+                        f"[{p.diffs[rk].ci_low:+.2f}, {p.diffs[rk].ci_high:+.2f}]"
+                    ),
+                    f"{mrr}, a − b": (
+                        f"{p.diffs[mrr].mean:+.3f} "
+                        f"[{p.diffs[mrr].ci_low:+.2f}, {p.diffs[mrr].ci_high:+.2f}]"
+                    ),
+                    "a higher / lower / equal": f"{p.wins} / {p.losses} / {p.ties}",
+                }
+                for p in result.pairs
+            ],
+            hide_index=True,
+        )
+        st.caption(
+            "Paired over the same questions, with 95% bootstrap intervals. An interval that "
+            "excludes 0 is a difference these questions can measure."
+        )
     st.caption(
         f"`results/{data.results_file}` (commit {result.git_commit[:8]}). Silver questions "
         "were written by an LLM from one passage each (D-044): one gold passage per "
