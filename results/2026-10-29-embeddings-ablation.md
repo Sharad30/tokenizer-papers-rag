@@ -1,21 +1,32 @@
 # Ablation `embeddings`
 
-Commit a21ae9e6027c, 2026-10-29. Question sets: silver (66 questions). dup@5 on 40 probe queries (`phase-5-queries.txt`, not gold). Judge: identifiers + 0 labelled pairs. Means with 95% bootstrap intervals.
+Commit 3b713c6f7c52, 2026-10-29. Question sets: silver (66 questions). dup@5 on 40 probe queries (`phase-5-queries.txt`, not gold). Judge: identifiers + 0 labelled pairs. Means with 95% bootstrap intervals.
 
 | Condition | recall@5 (silver) | mrr@10 (silver) | dup@5 | copy_dup@5 | latency p50 / p95 | index build | dims | size |
 |---|---|---|---|---|---|---|---|---|
-| BM25 only | 0.742 [0.636, 0.848] | 0.729 [0.617, 0.829] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 15 / 17 ms | bm25 0 min | – | 73 MB |
+| BM25 only | 0.742 [0.636, 0.848] | 0.729 [0.617, 0.829] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 14 / 16 ms | bm25 0 min | – | 73 MB |
 | bge-small dense | 0.470 [0.348, 0.591] | 0.399 [0.285, 0.511] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 14 / 16 ms | bge_small 58 min | 384 | 145 MB |
 | bge-small hybrid (deployed) | 0.636 [0.515, 0.758] | 0.596 [0.482, 0.708] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 14 / 16 ms | bm25 0 min + bge_small 58 min | 384 | 218 MB |
 | bge-base dense | 0.455 [0.318, 0.576] | 0.425 [0.305, 0.539] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 26 / 30 ms | bge_base 129 min | 768 | 288 MB |
-| bge-base hybrid | 0.667 [0.545, 0.773] | 0.605 [0.492, 0.717] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 24 / 28 ms | bm25 0 min + bge_base 129 min | 768 | 361 MB |
-| SPECTER2 dense | 0.136 [0.061, 0.227] | 0.099 [0.041, 0.176] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 26 / 28 ms | specter2 76 min | 768 | 288 MB |
-| SPECTER2 hybrid | 0.667 [0.561, 0.773] | 0.445 [0.356, 0.540] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 26 / 28 ms | bm25 0 min + specter2 76 min | 768 | 361 MB |
-| bge-small hybrid + reranker | 0.818 [0.727, 0.909] | 0.795 [0.697, 0.886] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 3306 / 4135 ms | bm25 0 min + bge_small 58 min | 384 | 218 MB |
-| bge-base hybrid + reranker | 0.818 [0.727, 0.909] | 0.795 [0.697, 0.886] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 3844 / 4823 ms | bm25 0 min + bge_base 129 min | 768 | 361 MB |
-| bge-small dense without query prompt | 0.394 [0.273, 0.500] | 0.335 [0.231, 0.433] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 14 / 18 ms | bge_small 58 min | 384 | 145 MB |
+| bge-base hybrid | 0.667 [0.545, 0.773] | 0.605 [0.492, 0.717] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 25 / 29 ms | bm25 0 min + bge_base 129 min | 768 | 361 MB |
+| SPECTER2 dense | 0.136 [0.061, 0.227] | 0.099 [0.041, 0.176] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 26 / 29 ms | specter2 76 min | 768 | 288 MB |
+| SPECTER2 hybrid | 0.667 [0.561, 0.773] | 0.445 [0.356, 0.540] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 26 / 29 ms | bm25 0 min + specter2 76 min | 768 | 361 MB |
+| bge-small hybrid + reranker | 0.818 [0.727, 0.909] | 0.795 [0.697, 0.886] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 4043 / 5228 ms | bm25 0 min + bge_small 58 min | 384 | 218 MB |
+| bge-base hybrid + reranker | 0.818 [0.727, 0.909] | 0.795 [0.697, 0.886] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 4369 / 5462 ms | bm25 0 min + bge_base 129 min | 768 | 361 MB |
+| bge-small dense without query prompt | 0.394 [0.273, 0.500] | 0.335 [0.231, 0.433] | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 16 / 20 ms | bge_small 58 min | 384 | 145 MB |
 
 **Top two by recall@5 (silver):** bge-small hybrid + reranker vs bge-base hybrid + reranker. Paired difference recall@5 0.000 [0.000, 0.000], mrr@10 0.000 [0.000, 0.000]; recall@5 higher on 0 questions, lower on 0, equal on 66. An interval that includes 0 means the data can't tell them apart.
+
+**Paired comparisons (silver, a minus b):**
+
+| a | b | recall@5 | mrr@10 | a higher / lower / equal |
+|---|---|---|---|---|
+| bge-small hybrid + reranker | bge-small hybrid (deployed) | 0.182 [0.091, 0.288] | 0.200 [0.099, 0.300] | 13 / 1 / 52 |
+| bge-base hybrid | bge-small hybrid (deployed) | 0.030 [-0.045, 0.121] | 0.009 [-0.065, 0.085] | 5 / 3 / 58 |
+| SPECTER2 hybrid | bge-small hybrid (deployed) | 0.030 [-0.091, 0.167] | -0.151 [-0.265, -0.035] | 11 / 9 / 46 |
+| bge-small hybrid (deployed) | BM25 only | -0.106 [-0.197, -0.015] | -0.133 [-0.230, -0.046] | 2 / 9 / 55 |
+| bge-small hybrid (deployed) | bge-small dense | 0.167 [0.091, 0.258] | 0.197 [0.116, 0.286] | 11 / 0 / 55 |
+| bge-small dense | bge-small dense without query prompt | 0.076 [0.015, 0.152] | 0.064 [0.015, 0.122] | 6 / 1 / 59 |
 
 - dup@5 (D-031): share of the top 5 slots whose paper already appeared higher;
   copy_dup@5 counts only another record of the paper (a version or venue copy).

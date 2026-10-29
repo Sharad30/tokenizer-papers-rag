@@ -1,8 +1,8 @@
 {
   "run": "embeddings",
-  "created_at": "2026-10-29T04:03:58.803676Z",
-  "git_commit": "a21ae9e6027c8a8333211e6313b227dff8f697bb",
-  "config_hash": "24cafdb7f422f372521f90bea12908195b19f14c9c0f2531191e3e698956488d",
+  "created_at": "2026-10-29T04:21:28.462986Z",
+  "git_commit": "3b713c6f7c52e812ff8156862a1b7c0dd86d638c",
+  "config_hash": "7add06fefd5c9befa6d120118086b84aa45d613ed7361412a015a3e5713e55b9",
   "config": {
     "logging": {
       "level": "INFO"
@@ -439,7 +439,8 @@
               "rerank": false,
               "query_prompt": null
             }
-          ]
+          ],
+          "pairs": []
         },
         "embeddings": {
           "queries_file": "phase-5-queries.txt",
@@ -549,6 +550,32 @@
               "rerank": false,
               "query_prompt": ""
             }
+          ],
+          "pairs": [
+            [
+              "small_hybrid_rerank",
+              "small_hybrid"
+            ],
+            [
+              "base_hybrid",
+              "small_hybrid"
+            ],
+            [
+              "specter2_hybrid",
+              "small_hybrid"
+            ],
+            [
+              "small_hybrid",
+              "bm25"
+            ],
+            [
+              "small_hybrid",
+              "small_dense"
+            ],
+            [
+              "small_dense",
+              "small_dense_no_prompt"
+            ]
           ]
         }
       }
@@ -683,7 +710,7 @@
       }
     }
   },
-  "queries_file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/probes/phase-5-queries.txt",
+  "queries_file": "probes/phase-5-queries.txt",
   "queries_sha256": "56fbdf473714a09c1ae678078e41adea054bc0ce5b17aca48bb6e20c198b019a",
   "n_queries": 40,
   "labelled_pairs": 0,
@@ -1720,7 +1747,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -3644,8 +3671,8 @@
         }
       },
       "latency_ms": {
-        "p50": 14.9,
-        "p95": 17.2,
+        "p50": 14.3,
+        "p95": 15.9,
         "n": 106.0
       },
       "cost": [
@@ -4676,7 +4703,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -6601,7 +6628,7 @@
       },
       "latency_ms": {
         "p50": 14.2,
-        "p95": 16.4,
+        "p95": 16.2,
         "n": 106.0
       },
       "cost": [
@@ -7632,7 +7659,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -9556,8 +9583,8 @@
         }
       },
       "latency_ms": {
-        "p50": 13.9,
-        "p95": 16.0,
+        "p50": 14.5,
+        "p95": 16.2,
         "n": 106.0
       },
       "cost": [
@@ -10594,7 +10621,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -12518,8 +12545,8 @@
         }
       },
       "latency_ms": {
-        "p50": 25.8,
-        "p95": 30.1,
+        "p50": 25.7,
+        "p95": 29.8,
         "n": 106.0
       },
       "cost": [
@@ -13550,7 +13577,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -15474,8 +15501,8 @@
         }
       },
       "latency_ms": {
-        "p50": 24.5,
-        "p95": 28.3,
+        "p50": 25.3,
+        "p95": 29.3,
         "n": 106.0
       },
       "cost": [
@@ -16510,7 +16537,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -18434,8 +18461,8 @@
         }
       },
       "latency_ms": {
-        "p50": 26.1,
-        "p95": 28.4,
+        "p50": 26.2,
+        "p95": 28.6,
         "n": 106.0
       },
       "cost": [
@@ -19466,7 +19493,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -21390,8 +21417,8 @@
         }
       },
       "latency_ms": {
-        "p50": 26.1,
-        "p95": 28.2,
+        "p50": 26.3,
+        "p95": 28.7,
         "n": 106.0
       },
       "cost": [
@@ -22429,7 +22456,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -24353,8 +24380,8 @@
         }
       },
       "latency_ms": {
-        "p50": 3306.2,
-        "p95": 4135.4,
+        "p50": 4043.1,
+        "p95": 5228.1,
         "n": 106.0
       },
       "cost": [
@@ -25392,7 +25419,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -27316,8 +27343,8 @@
         }
       },
       "latency_ms": {
-        "p50": 3844.1,
-        "p95": 4822.6,
+        "p50": 4368.6,
+        "p95": 5461.7,
         "n": 106.0
       },
       "cost": [
@@ -28352,7 +28379,7 @@
       ],
       "sets": {
         "silver": {
-          "file": "/Users/sharad/Documents/agentic-ai/tokenizer-papers-rag/eval/silver/questions.jsonl",
+          "file": "eval/silver/questions.jsonl",
           "sha256": "53967b877b388e47995204ac41ad145b3b6efdfed17788491052021776580e43",
           "n_questions": 66,
           "result": {
@@ -30276,8 +30303,8 @@
         }
       },
       "latency_ms": {
-        "p50": 14.4,
-        "p95": 17.5,
+        "p50": 15.9,
+        "p95": 19.6,
         "n": 106.0
       },
       "cost": [
@@ -30312,5 +30339,139 @@
     "wins": 0,
     "losses": 0,
     "ties": 66
-  }
+  },
+  "pairs": [
+    {
+      "set": "silver",
+      "a": "small_hybrid_rerank",
+      "b": "small_hybrid",
+      "diffs": {
+        "recall@5": {
+          "mean": 0.18181818181818182,
+          "ci_low": 0.09053030303030306,
+          "ci_high": 0.2878787878787879,
+          "n": 66
+        },
+        "mrr@10": {
+          "mean": 0.19970538720538722,
+          "ci_low": 0.09930555555555555,
+          "ci_high": 0.30011047979797983,
+          "n": 66
+        }
+      },
+      "wins": 13,
+      "losses": 1,
+      "ties": 52
+    },
+    {
+      "set": "silver",
+      "a": "base_hybrid",
+      "b": "small_hybrid",
+      "diffs": {
+        "recall@5": {
+          "mean": 0.030303030303030304,
+          "ci_low": -0.045454545454545456,
+          "ci_high": 0.12121212121212122,
+          "n": 66
+        },
+        "mrr@10": {
+          "mean": 0.00919312169312169,
+          "ci_low": -0.0653064874939875,
+          "ci_high": 0.0847453703703703,
+          "n": 66
+        }
+      },
+      "wins": 5,
+      "losses": 3,
+      "ties": 58
+    },
+    {
+      "set": "silver",
+      "a": "specter2_hybrid",
+      "b": "small_hybrid",
+      "diffs": {
+        "recall@5": {
+          "mean": 0.030303030303030304,
+          "ci_low": -0.09128787878787877,
+          "ci_high": 0.16666666666666666,
+          "n": 66
+        },
+        "mrr@10": {
+          "mean": -0.15105218855218855,
+          "ci_low": -0.2653198653198653,
+          "ci_high": -0.034583333333333355,
+          "n": 66
+        }
+      },
+      "wins": 11,
+      "losses": 9,
+      "ties": 46
+    },
+    {
+      "set": "silver",
+      "a": "small_hybrid",
+      "b": "bm25",
+      "diffs": {
+        "recall@5": {
+          "mean": -0.10606060606060606,
+          "ci_low": -0.19696969696969696,
+          "ci_high": -0.015151515151515152,
+          "n": 66
+        },
+        "mrr@10": {
+          "mean": -0.13303872053872054,
+          "ci_low": -0.2296348905723906,
+          "ci_high": -0.04601851851851862,
+          "n": 66
+        }
+      },
+      "wins": 2,
+      "losses": 9,
+      "ties": 55
+    },
+    {
+      "set": "silver",
+      "a": "small_hybrid",
+      "b": "small_dense",
+      "diffs": {
+        "recall@5": {
+          "mean": 0.16666666666666666,
+          "ci_low": 0.09090909090909091,
+          "ci_high": 0.25757575757575757,
+          "n": 66
+        },
+        "mrr@10": {
+          "mean": 0.19672318422318422,
+          "ci_low": 0.11594967532467532,
+          "ci_high": 0.2855188792688793,
+          "n": 66
+        }
+      },
+      "wins": 11,
+      "losses": 0,
+      "ties": 55
+    },
+    {
+      "set": "silver",
+      "a": "small_dense",
+      "b": "small_dense_no_prompt",
+      "diffs": {
+        "recall@5": {
+          "mean": 0.07575757575757576,
+          "ci_low": 0.015151515151515152,
+          "ci_high": 0.15151515151515152,
+          "n": 66
+        },
+        "mrr@10": {
+          "mean": 0.06415945165945165,
+          "ci_low": 0.014919282106782113,
+          "ci_high": 0.12244588744588743,
+          "n": 66
+        }
+      },
+      "wins": 6,
+      "losses": 1,
+      "ties": 59
+    }
+  ]
 }
