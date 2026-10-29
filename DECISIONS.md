@@ -620,3 +620,66 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Evidence: none yet: the labels are Sharad's (`eval/pairs_candidates.jsonl` → `eval/pairs.jsonl`).
 - Tuned on eval set?: n/a
 - Revisit if: labels disagree with identifier links (e.g. an S2 id shared by two papers).
+
+## D-043: Embedding model and retrieval setup
+- Date / Phase: 2026-10-29 / Phase 6
+- Status: proposed (provisional: silver evidence only; Sharad writes his own recommendation in JOURNAL.md once gold numbers exist)
+- Context: The brief asks for an embedding model chosen with evidence: a general model against a scientific one, whether keyword search should stay next to vector search, Recall@5 and MRR, and cost and latency. All conditions run with Phase 5's duplicate handling on (D-041), as deployed.
+- Options considered:
+  1. bge-small-en-v1.5 (384 dimensions, deployed since Phase 4). Pros: 58 min to embed the corpus on CPU, 145 MB, 14 ms per query. Cons: smallest model.
+  2. bge-base-en-v1.5 (768 dimensions). Pros: a larger general retrieval model with the same query instruction. Cons: 129 min to embed, 288 MB, about 25 ms per query.
+  3. SPECTER2 (allenai/specter2_base): the ad-hoc query adapter for questions, the proximity adapter for passages, `title [SEP] text`, CLS vector. Pros: trained on scientific papers. Cons: trained on citation links, so it learns paper-to-paper similarity, not question-to-passage. Its `adapters` library pins transformers 4.57 while the project uses 5.x, so it runs in an isolated `uv run --isolated` environment through `retrieve/specter2_worker.py`. That is a separate process per call (seconds of model load in a live system), plus 44 chunks truncated at 512 SciBERT tokens.
+  4. BM25 alone, any dense model alone, or hybrid (RRF, D-030).
+  5. Hybrid plus a cross-encoder reranker (bge-reranker-base over the fused top 50, `retrieve/rerank.py`). Pros: reads query and passage together. Cons: about 4 s per query on CPU.
+- Choice (proposed):
+  - Keep **bge-small** as the embedding model, in **hybrid** with BM25.
+  - Turn the **reranker** on for the chat path if the gold set confirms the silver gain. It is off in config until Sharad decides.
+  - No re-embedding, no new environment.
+- Evidence: `results/2026-10-29-embeddings-ablation.md` (commit a21ae9e first run, 3b713c6 rerun with paired differences; 66 silver questions, D-044). Paired differences, a minus b, 95% bootstrap:
+  - **Reranker vs bge-small hybrid:** Recall@5 +0.182 [0.091, 0.288], MRR +0.200; 13 questions better, 1 worse. The only gain the data separates from zero. With the reranker, bge-small and bge-base tie on every question. Their top 5s still differ on 77 of 106 queries, but the cross-encoder brings the gold chunk to the same rank. So, under a reranker, the bigger embedding model buys nothing here.
+  - **bge-base vs bge-small hybrid:** +0.030 [-0.045, 0.121]. Can't be told apart, at 2.2× the embedding time, twice the size and about twice the query latency.
+  - **SPECTER2 vs bge-small hybrid:** Recall@5 +0.030 [-0.091, 0.167] but MRR −0.151 [-0.265, -0.035]. SPECTER2 dense alone reaches Recall@5 0.136. The term probe (`docs/figures/phase6-terms.md`) shows why: every term pair scores 0.80–0.98, so "SentencePiece / BPE" looks as close as "SentencePiece / sentence piece". Only 0.28 of its top 5 contain the query's exact term, against 0.68 for BM25.
+  - **Hybrid vs dense (bge-small):** +0.167 [0.091, 0.258]; 11 better, 0 worse. Keyword search clearly helps. Exact names (CANINE, Parity-aware BPE, Hindi) are where BM25 wins in the probe.
+  - **Hybrid vs BM25 alone:** −0.106 [-0.197, -0.015]. On silver, BM25 alone beats every hybrid. The silver questions copy the passage's wording (median content-word overlap 0.75, D-044), which favours BM25. **This is the result most likely to change on gold.** If gold agrees, revisit the fusion (weighted RRF, or BM25 weight per question type: PLAN's adaptive-fusion explore).
+  - **bge query instruction on vs off:** +0.076 [0.015, 0.152]. Forgetting the prefix costs recall.
+  - **Latency p50 / p95 (this CPU):**
+    - bge-small 14/16 ms;
+    - bge-base 25/29 ms;
+    - SPECTER2 26/29 ms, encoding only, timed inside its warm worker;
+    - with the reranker 3.3–4.4 s, varying between two runs on the same machine.
+    For chat, the reranker adds about 4 s to an answer that takes 7–17 s with qwen3:8b.
+- Tuned on eval set?: No setting was tuned. The choice among conditions is made on the silver set, so it is a selection on that set; gold is the check.
+- Revisit if:
+  - gold Recall@5 doesn't show the reranker gain, or shows BM25 ≥ hybrid;
+  - latency matters more than recall (drop the reranker: 14 ms vs 4 s);
+  - questions become paper-to-paper ("papers like X"), where SPECTER2's training fits;
+  - a model is changed. The chat gate threshold 0.70 (D-036) is a bge-small cosine. SPECTER2's cosines bunch around 0.75, so a model change needs `probes/phase-7-gate.py` rerun, and `rag dedup run` needs rerunning too (restatements use the dense vectors).
+
+## D-044: A silver question set until the gold set exists
+- Date / Phase: 2026-10-29 / Phase 6
+- Status: proposed
+- Context: Phase 6 needs Recall@5 and MRR, and `eval/questions.jsonl` (Sharad's, Phase 3) doesn't exist yet.
+- Options considered:
+  1. Wait for gold. Pros: no biased numbers. Cons: Phase 6 has no Recall/MRR at all.
+  2. A silver set: an LLM writes one question per sampled chunk; kept apart and always labelled silver. Pros: numbers now; the same command scores gold later. Cons: the biases below.
+  3. Probe queries only (dup@5, no relevance labels). Cons: no Recall/MRR.
+- Choice: 2. `rag eval silver` (`src/rag/eval/silver.py`) samples 90 chunks, one per canonical work:
+  - seed 13;
+  - paragraphs and tables of 80–400 tokens;
+  - no surveys.
+  qwen3:8b at temperature 0 (`prompts/silver_question.md`) writes a question and copies an evidence sentence. A question is kept only if:
+  - it parses;
+  - it doesn't point at its source ("the paper", "the table", "the proposed"…);
+  - its evidence maps to the chunk.
+  Output in `eval/silver/questions.jsonl` with `meta.json` (model, prompt sha256, seed, rejections), origin `silver_llm`. It is never pooled with gold. `rag eval validate` treats the question-mix minimums as warnings for an all-silver file.
+- Evidence:
+  - 66 of 90 kept. Rejected: 18 pointing at the source, 4 evidence not in chunk, 1 unparseable, 1 Ollama error.
+  - Two runs gave the same 66 questions word for word.
+  - Median content-word overlap with the passage: 0.75.
+- Known biases:
+  - One gold chunk per question, so another passage that also answers it counts as a miss (incomplete judgements). This lowers every condition, most of all the ones that find other good passages.
+  - Single-paper lookups only: no multi-paper, follow-up or unanswerable questions.
+  - Wording drawn from the passage, which favours BM25.
+  - Questions from one LLM's view of what is askable.
+- Tuned on eval set?: n/a
+- Revisit if: the gold set exists. Then gold numbers lead, and silver stays only as a check on how far the two agree (PLAN's synthetic-eval agreement explore).
