@@ -1,0 +1,318 @@
+{
+  "created_at": "2026-11-02T16:22:27.842881Z",
+  "answers_file": "2026-11-02-answers.jsonl",
+  "answers_commit": "b233815f6385d6b07def1c8c1f265b911b7f0007",
+  "model": "qwen3:8b",
+  "labelled": false,
+  "deployed_threshold": 0.7,
+  "n_questions": 28,
+  "abstention": {
+    "unanswerable handled": {
+      "count": 5,
+      "total": 5,
+      "rate": 1.0
+    },
+    "unanswerable awaiting a label": {
+      "count": 0,
+      "total": 5,
+      "rate": 0.0
+    },
+    "false abstention (answerable)": {
+      "count": 1,
+      "total": 23,
+      "rate": 0.043478260869565216
+    }
+  },
+  "gates": {
+    "gate": 2,
+    "model": 4
+  },
+  "uncited_claims": {
+    "count": 36,
+    "total": 94,
+    "rate": 0.3829787234042553
+  },
+  "invalid_citations": 0,
+  "claims": {},
+  "correct": null,
+  "rewrites": {},
+  "followup_retrieval": {
+    "raw": {
+      "recall@5": 0.0,
+      "paper_recall@5": 0.3333333333333333
+    },
+    "oracle": {
+      "recall@5": 0.0,
+      "paper_recall@5": 0.6666666666666666
+    },
+    "system": {
+      "recall@5": 0.0,
+      "paper_recall@5": 0.3333333333333333
+    }
+  },
+  "followup_run": "2026-11-02-phase8-followups.json",
+  "sweep": [
+    {
+      "threshold": 0.6,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.61,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.62,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.63,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.64,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.65,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.66,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.67,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.68,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.69,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.7,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.71,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.72,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.73,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.74,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.75,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.76,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.77,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.78,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.79,
+      "coverage": 0.7857142857142857,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.043478260869565216,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.8,
+      "coverage": 0.6785714285714286,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.17391304347826086,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.81,
+      "coverage": 0.6428571428571429,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.21739130434782608,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.82,
+      "coverage": 0.5714285714285714,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.30434782608695654,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.83,
+      "coverage": 0.5,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.391304347826087,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.84,
+      "coverage": 0.42857142857142855,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.4782608695652174,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.85,
+      "coverage": 0.32142857142857145,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.6086956521739131,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.86,
+      "coverage": 0.21428571428571427,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.7391304347826086,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.87,
+      "coverage": 0.21428571428571427,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.7391304347826086,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.88,
+      "coverage": 0.10714285714285714,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.8695652173913043,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.89,
+      "coverage": 0.03571428571428571,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 0.9565217391304348,
+      "risk": null,
+      "risk_n": 0
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 0.0,
+      "unanswerable_handled": 1.0,
+      "false_abstention": 1.0,
+      "risk": null,
+      "risk_n": 0
+    }
+  ],
+  "failures": [
+    {
+      "question_id": "C4-T2",
+      "what": "false abstention (gate)",
+      "stage": "rewrite",
+      "evidence": [
+        "top dense cosine 0.633",
+        "gold passages in context 0.00, gold papers 0.00",
+        "follow-up retrieved with the user's words: the rewrite returned it unchanged",
+        "the model answered NOT_SUPPORTED"
+      ],
+      "inspect": "uv run rag inspect query \"How did they force the other direction in their experiments?\""
+    }
+  ]
+}
