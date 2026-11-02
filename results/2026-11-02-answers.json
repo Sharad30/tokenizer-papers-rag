@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-11-02T16:18:07.490779Z",
+  "git_commit": "b233815f6385d6b07def1c8c1f265b911b7f0007",
+  "config_hash": "6423ffd98ba609af961a167613748d89392c7e0e1fac5ed18b47e2840cdda426",
+  "model": "qwen3:8b",
+  "prompts": {
+    "answer_system.md": "6078027685f92ed30772994681c99384a3469bbf8f9c904c3ed9fe1cff0ed79e",
+    "rewrite_system.md": "473fb9158a513fa539c37c9481912bdde5d9948a67d843117d46ea37cc4a85ef"
+  },
+  "questions_file": "eval/gold/questions.jsonl",
+  "questions_sha256": "787bbbecfc4402d0ceb5aaea434a0cefaba7706859f94a8925be12147bc428c0",
+  "n_questions": 28,
+  "deployed_threshold": 0.7,
+  "note": "retrieval gate off during the run; thresholds are simulated"
+}
