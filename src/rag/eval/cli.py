@@ -85,6 +85,35 @@ def check_papers(ctx: typer.Context, file: DraftFile = None) -> None:
 
 
 @app.command()
+def resolve(
+    ctx: typer.Context,
+    file: DraftFile = None,
+    id: Annotated[  # noqa: A002 - the question id, as the draft names it
+        str | None, typer.Option("--id", help="Only this question (also redoes resolved spans)")
+    ] = None,
+) -> None:
+    """Pick a verbatim gold span for each drafted gold entry, interactively.
+
+    Lists the paper's chunks containing the entry's span_search terms, in
+    corpus order; you open one, pick sentences or type the span, and it is
+    written only if it maps to a chunk. Saves after every change (.bak kept).
+    """
+    config = get_config(ctx)
+    path = _draft_path(config, file)
+    questions = draft_mod.read_draft(path)
+    changed = draft_mod.resolve(
+        questions,
+        _corpus(config),
+        config.eval.draft,
+        ask=lambda prompt: typer.prompt(prompt, default="", show_default=False),
+        say=typer.echo,
+        save=lambda qs: draft_mod.write_draft(path, qs),
+        only=id,
+    )
+    typer.echo(f"\n{changed} change(s) saved to {path}")
+
+
+@app.command()
 def validate(
     ctx: typer.Context,
     file: Annotated[

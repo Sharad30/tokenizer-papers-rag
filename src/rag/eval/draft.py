@@ -19,7 +19,7 @@ import json
 import re
 import shutil
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -29,9 +29,17 @@ from rag.collect.schemas import ManifestRecord
 from rag.common.io import write_text_atomic
 from rag.common.schemas import StrictModel
 from rag.dedup.resolve import normalise as normalise_title
+from rag.eval.config import DraftConfig
 from rag.eval.identity import identity_groups
-from rag.eval.schemas import AbsentCheck, ExpectedBehavior, QuestionType, UnanswerableKind
-from rag.eval.spans import ChunkTexts
+from rag.eval.schemas import (
+    AbsentCheck,
+    ExpectedBehavior,
+    GoldSpan,
+    QuestionType,
+    UnanswerableKind,
+)
+from rag.eval.spans import ChunkTexts, Suggestion, map_span, normalise, suggest
+from rag.parse.schemas import Chunk
 
 ARXIV_VERSION = re.compile(r"v\d+$")
 
@@ -205,3 +213,235 @@ def render_check(rows: list[tuple[DraftQuestion, int, PaperMatch]], corpus: Corp
                 lines.append(f"  {paper}")
                 lines.append(f"    questions: {', '.join(sorted(set(ids)))}")
     return "\n".join(lines)
+
+
+# --- resolve: candidate passages and Sharad's pick -----------------------------------
+
+# A sentence ends at . ! ? followed by space and an upper-case letter, digit or
+# bracket. Good enough to offer sentences to pick from; Sharad can always type
+# the span himself.
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(\[\"'])")
+
+
+class Candidate(StrictModel):
+    chunk_id: str
+    record_id: str
+    element: str
+    section: str
+    terms: list[str]  # the span_search terms it contains
+    excerpt: str
+    copies: list[str] = []  # other chunk ids with the same text (linked copies)
+
+
+def section_of(chunk: Chunk) -> str:
+    return " > ".join(chunk.section_path)
+
+
+def candidates(
+    terms: Sequence[str], records: Sequence[str], texts: ChunkTexts, excerpt_chars: int
+) -> list[Candidate]:
+    """Chunks of these records containing any term: record by record, in corpus order.
+
+    Never ranked by how many terms match (D-024). Identical text in a linked
+    copy is listed once, with the copy's chunk id noted.
+    """
+    needles = [(t, normalise(t)) for t in terms if normalise(t)]
+    out: list[Candidate] = []
+    seen: dict[str, Candidate] = {}
+    for record_id in records:
+        for ic in texts.paper(record_id):
+            found = [t for t, n in needles if n in ic.norm]
+            if not found:
+                continue
+            if ic.norm in seen:
+                seen[ic.norm].copies.append(ic.chunk.chunk_id)
+                continue
+            first = normalise(found[0])
+            at = ic.norm.find(first)
+            lo, hi = max(0, at - excerpt_chars), at + len(first) + excerpt_chars
+            c = Candidate(
+                chunk_id=ic.chunk.chunk_id,
+                record_id=record_id,
+                element=ic.chunk.element_type,
+                section=section_of(ic.chunk) or "-",
+                terms=found,
+                excerpt=("…" if lo else "") + ic.norm[lo:hi] + ("…" if hi < len(ic.norm) else ""),
+            )
+            seen[ic.norm] = c
+            out.append(c)
+    return out
+
+
+def sentences(chunk: Chunk) -> list[str]:
+    """The chunk's text as pickable pieces, verbatim: table rows, else sentences."""
+    if chunk.element_type == "table":
+        return [line for line in chunk.text.splitlines() if line.strip()]
+    return [s for s in SENTENCE_END.split(" ".join(chunk.text.split())) if s]
+
+
+class SpanCheck(StrictModel):
+    record_id: str | None = None  # the first record whose chunks contain the span
+    chunk_ids: list[str] = []
+    section: str | None = None
+    hint: Suggestion | None = None  # the nearest passage, when it doesn't map
+
+
+def check_span(span: str, records: Sequence[str], texts: ChunkTexts) -> SpanCheck:
+    """Does the span map to a chunk of the gold paper? (`map_span`, as the harness does.)"""
+    for record_id in records:
+        ids = map_span(GoldSpan(record_id=record_id, span=span), texts)
+        if ids:
+            chunk = next(ic.chunk for ic in texts.paper(record_id) if ic.chunk.chunk_id == ids[0])
+            return SpanCheck(record_id=record_id, chunk_ids=ids, section=section_of(chunk) or None)
+    pool = [ic for r in records for ic in texts.paper(r)]
+    return SpanCheck(hint=suggest(span, pool) if pool else None)
+
+
+def with_span(q: DraftQuestion, index: int, check: SpanCheck, span: str) -> DraftQuestion:
+    """The question with gold entry `index` resolved; nothing else changes."""
+    gold = list(q.gold)
+    gold[index] = gold[index].model_copy(
+        update={"span": span, "record_id": check.record_id, "section": check.section}
+    )
+    return q.model_copy(update={"gold": gold})
+
+
+Ask = Callable[[str], str]
+Say = Callable[[str], None]
+
+HELP = (
+    "  <n> open candidate n · t <words> search this paper · e type a span · "
+    "k skip · q save and quit"
+)
+
+
+def resolve_gold(
+    q: DraftQuestion,
+    index: int,
+    match: PaperMatch,
+    texts: ChunkTexts,
+    config: DraftConfig,
+    ask: Ask,
+    say: Say,
+) -> DraftQuestion | Literal["skip", "quit"]:
+    """One gold entry: show candidates, let Sharad pick or type a span, check it maps."""
+    g = q.gold[index]
+    say(f"\n=== {q.id} gold {index + 1}/{len(q.gold)} · {q.type} · {q.question}")
+    say(f"    paper: {g.title}  ({match.how}: {', '.join(match.records)})")
+    say(f"    hint: {g.section_hint or '-'} · {g.location_hint or '-'}")
+    say(f"    gist (to read, not to copy): {g.answer_gist or '-'}")
+    shown = candidates(g.span_search, match.records, texts, config.excerpt_chars)
+    by_id = {ic.chunk.chunk_id: ic.chunk for r in match.records for ic in texts.paper(r)}
+    while True:
+        _list(shown, config.max_candidates, f"terms {g.span_search}", say)
+        say(HELP)
+        answer = ask("> ").strip()
+        if answer in ("k", ""):
+            return "skip"
+        if answer == "q":
+            return "quit"
+        if answer.startswith("t "):
+            shown = candidates([answer[2:]], match.records, texts, config.excerpt_chars)
+            continue
+        span: str | None = None
+        if answer == "e":
+            span = ask("span> ").strip()
+        elif answer.isdigit() and 1 <= int(answer) <= min(len(shown), config.max_candidates):
+            span = _pick_sentences(by_id[shown[int(answer) - 1].chunk_id], ask, say)
+        else:
+            say("  ?")
+            continue
+        if not span:
+            continue
+        check = check_span(span, match.records, texts)
+        if check.record_id:
+            say(f"  ok: {check.record_id} · {check.section or '-'} · {', '.join(check.chunk_ids)}")
+            return with_span(q, index, check, span)
+        say("  that span is in no chunk of this paper (spelling and hyphenation must match).")
+        if check.hint:
+            hint = check.hint
+            say(f"  nearest ({hint.similarity:.2f}, {hint.chunk_id}): {hint.excerpt}")
+
+
+def _list(shown: list[Candidate], limit: int, what: str, say: Say) -> None:
+    if not shown:
+        say(f"  no chunk contains {what}")
+        return
+    for n, c in enumerate(shown[:limit], 1):
+        copies = f" (same text in {', '.join(c.copies)})" if c.copies else ""
+        say(f"  [{n}] {c.chunk_id} · {c.element} · {c.section} · {', '.join(c.terms)}{copies}")
+        say(f"      {c.excerpt}")
+    if len(shown) > limit:
+        say(f"  … {len(shown) - limit} more: narrow with t <words>")
+
+
+def _pick_sentences(chunk: Chunk, ask: Ask, say: Say) -> str | None:
+    pieces = sentences(chunk)
+    for n, piece in enumerate(pieces, 1):
+        say(f"    ({n}) {piece}")
+    answer = ask("  sentences k or k-m, e to type, b back> ").strip()
+    if answer == "e":
+        return ask("span> ").strip() or None
+    found = re.fullmatch(r"(\d+)(?:-(\d+))?", answer)
+    if not found:
+        return None
+    lo, hi = int(found.group(1)), int(found.group(2) or found.group(1))
+    if not 1 <= lo <= hi <= len(pieces):
+        say("  out of range")
+        return None
+    return " ".join(pieces[lo - 1 : hi])
+
+
+KIND_CHOICES = list(UnanswerableKind)
+
+
+def ask_kind(q: DraftQuestion, ask: Ask, say: Say) -> UnanswerableKind | None:
+    """Sharad picks the unanswerable kind; nothing is pre-selected."""
+    say(f"\n=== {q.id} · not answerable ({q.expected_behavior or '-'}) · {q.question}")
+    for n, kind in enumerate(KIND_CHOICES, 1):
+        say(f"  {n} {kind.value}")
+    answer = ask("  kind (number, or enter to skip)> ").strip()
+    if answer.isdigit() and 1 <= int(answer) <= len(KIND_CHOICES):
+        return KIND_CHOICES[int(answer) - 1]
+    return None
+
+
+def resolve(
+    questions: list[DraftQuestion],
+    corpus: Corpus,
+    config: DraftConfig,
+    ask: Ask,
+    say: Say,
+    save: Callable[[list[DraftQuestion]], None],
+    only: str | None = None,
+) -> int:
+    """Walk the unresolved gold entries (or every entry of question `only`).
+
+    Saves after every change, so quitting or a crash loses nothing. Returns
+    the number of changes.
+    """
+    changed = 0
+    for qi, q in enumerate(questions):
+        if only and q.id != only:
+            continue
+        if not q.answerable and q.unanswerable_kind is None:
+            kind = ask_kind(q, ask, say)
+            if kind is not None:
+                questions[qi] = q = q.model_copy(update={"unanswerable_kind": kind})
+                save(questions)
+                changed += 1
+        for gi, g in enumerate(q.gold):
+            if g.span is not None and not only:
+                continue
+            match = corpus.match(g, config.title_min_ratio)
+            if not match.records:
+                say(f"\n=== {q.id} gold {gi + 1}: {g.title} is {match.status}: skipped")
+                continue
+            result = resolve_gold(q, gi, match, corpus.texts, config, ask, say)
+            if result == "quit":
+                return changed
+            if result != "skip":
+                questions[qi] = q = result
+                save(questions)
+                changed += 1
+    return changed
