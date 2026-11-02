@@ -51,6 +51,21 @@ def resolve(answer: str, valid: set[str]) -> CitedAnswer:
     return result
 
 
+def claim_sentences(answer: str) -> list[tuple[str, list[str]]]:
+    """(sentence, context labels it cites) for every sentence long enough to be a claim.
+
+    One sentence is one claim (D-046): coarser than atomic facts, but
+    deterministic, and the same split the uncited count uses.
+    """
+    sentences = [s.strip() for line in answer.splitlines() for s in _SENTENCE_END.split(line)]
+    out = []
+    for s in sentences:
+        if len(s.split()) < MIN_CLAIM_WORDS:
+            continue
+        labels = [m.upper() for cite in _CITE.findall(s) for m in _LABEL.findall(cite)]
+        out.append((s, list(dict.fromkeys(labels))))
+    return out
+
+
 def count_uncited(answer: str) -> int:
-    sentences = [s for line in answer.splitlines() for s in _SENTENCE_END.split(line)]
-    return sum(1 for s in sentences if len(s.split()) >= MIN_CLAIM_WORDS and not _CITE.search(s))
+    return sum(1 for _, labels in claim_sentences(answer) if not labels)

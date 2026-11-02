@@ -179,6 +179,73 @@ def finalize(
 
 
 @app.command()
+def answers(ctx: typer.Context, limit: LimitOption = None) -> None:
+    """Run every eval question through the chat (gate off) and save the answers (Phase 8)."""
+    from rag.chat.engine import ChatEngine
+    from rag.chat.llm import make_llm
+    from rag.chat.prompts import load_prompt
+    from rag.common.io import file_sha256, write_json, write_jsonl
+    from rag.common.provenance import config_hash, git_commit
+    from rag.eval import answers as answers_mod
+    from rag.eval.identity import identity_groups, load_pairs
+    from rag.eval.run import results_path
+    from rag.retrieve.retriever import Retriever
+
+    config = get_config(ctx)
+    qpath = config.paths.eval / config.eval.questions_file
+    questions, errors = validate_mod.load_questions(qpath)
+    if errors:
+        typer.echo(f"{qpath} has invalid lines; run `rag eval validate`.", err=True)
+        raise typer.Exit(1)
+    if limit:
+        questions = questions[:limit]
+    chat = config.chat
+    deployed = chat.abstain.min_dense_cosine
+    # Gate off for the run: the report simulates every threshold (D-046).
+    chat = chat.model_copy(
+        update={"abstain": chat.abstain.model_copy(update={"min_dense_cosine": -1.0})}
+    )
+    prompts = [load_prompt(config.paths.prompts, chat.prompts.answer)]
+    prompts.append(load_prompt(config.paths.prompts, chat.prompts.rewrite))
+    llm = make_llm(chat)
+    manifest = read_manifest(config.paths.manifest)
+    engine = ChatEngine(
+        Retriever.load(config, {"hybrid"}),
+        llm,
+        {r.record_id: r for r in manifest},
+        chat,
+        *prompts,
+    )
+    groups = identity_groups(manifest, load_pairs(config.paths.eval / config.eval.pairs_file))
+    out = results_path(config, "answers").with_suffix(".jsonl")
+    done: list = []
+
+    def keep(record) -> None:  # saved after every answer: a crash loses nothing
+        done.append(record)
+        write_jsonl(out, done)
+        state = "abstained" if record.model_abstained else f"{len(record.claims)} claims"
+        cosine = record.top_dense_cosine
+        shown = "n/a" if cosine is None else f"{cosine:.3f}"
+        typer.echo(f"{record.question_id}: {state} · cosine {shown}")
+
+    answers_mod.run(questions, engine, _chunk_texts(config), groups, on_answer=keep)
+    write_json(
+        out.with_suffix(".json"),
+        answers_mod.meta(
+            questions,
+            deployed,
+            git_commit=git_commit(),
+            config_hash=config_hash(config),
+            model=llm.model,
+            prompts={p.name: p.sha256 for p in prompts},
+            questions_file=str(qpath.relative_to(config.paths.eval.parent)),
+            questions_sha256=file_sha256(qpath),
+        ),
+    )
+    typer.echo(f"{len(done)} answers -> {out}")
+
+
+@app.command()
 def validate(
     ctx: typer.Context,
     file: Annotated[
