@@ -566,7 +566,12 @@ def to_question(d: DraftQuestion) -> Question:
         question=d.question,
         conversation_id=d.conversation_id,
         turn=d.turn,
-        oracle_rewrite=d.oracle_rewrite,
+        # A turn-1 rewrite identical to the question says nothing (turn 1 is
+        # already standalone) and the schema forbids it; a different one is
+        # kept, so the schema refuses it and Sharad sees it.
+        oracle_rewrite=None
+        if d.turn == 1 and d.oracle_rewrite and d.oracle_rewrite.strip() == d.question.strip()
+        else d.oracle_rewrite,
         answerable=d.answerable,
         unanswerable_kind=d.unanswerable_kind,
         gold=[

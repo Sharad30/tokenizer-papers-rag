@@ -407,3 +407,10 @@ def test_finalize_cli_never_overwrites_an_eval_set_without_force(
     result = CliRunner().invoke(app, ["--config", str(config_path), "eval", "finalize"])
     assert result.exit_code == 1 and "--force" in result.output
     assert existing.read_text(encoding="utf-8") == "Sharad's set\n"
+
+
+def test_finalize_drops_a_turn1_rewrite_only_when_it_repeats_the_question() -> None:
+    same = resolved(id="C1-T1", conversation_id="C1", turn=1, oracle_rewrite=DRAFT_LINE["question"])
+    assert draft.finalize([same]).questions[0].oracle_rewrite is None
+    other = resolved(id="C1-T1", conversation_id="C1", turn=1, oracle_rewrite="Something else?")
+    assert "already standalone" in draft.finalize([other]).refused["C1-T1"]
