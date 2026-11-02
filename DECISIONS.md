@@ -607,6 +607,13 @@ deleted: a changed decision gets a new entry, and the old one is marked
   - **MMR:** changed 11.
 - Tuned on eval set?: no (probe queries, not gold).
 - Revisit if: Recall@5/MRR on Sharad's questions drop with the cap (try N = 2, his "You do"); answers need several chunks from one paper.
+- Update 2026-11-02 (gold set): `results/2026-11-02-dedup-ablation.md`, 28 gold questions (23 scored) and 66 silver, run at fa3713a. Paired on gold, each step against the one before:
+  - **Canonical mask: +0.130 Recall@5 [0.000, 0.261]** (3 better, 0 worse). Copies were taking top-5 slots.
+  - **Fuzzy merges: +0.007**, about neutral.
+  - **Per-work cap 1: −0.130 [−0.304, 0.000]** (0 better, 3 worse). Paper recall stays at 0.522, and silver Recall@5 drops 0.758 → 0.636. The cap removes duplicates (dup@5 0.455 → 0) but costs the exact passage, without bringing in more gold papers.
+  - **Survey demotion and MMR:** no effect on these questions.
+
+  The cap stays at 1 in config for now. Cap 1 vs 2 is Sharad's experiment (JOURNAL skeleton "Per-work cap 1 vs 2"), and this gold set is what can now measure it. Chat also gets one chunk per work, so the cap's cost reaches the answers.
 
 ## D-042: The dup@5 judge adds Sharad's labelled pairs
 - Date / Phase: 2026-10-28 / Phase 5
