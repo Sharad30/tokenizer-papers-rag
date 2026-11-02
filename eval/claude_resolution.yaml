@@ -1,0 +1,93 @@
+# Gold spans picked by Claude (not Sharad) for eval/questions.draft.jsonl, 2026-11-02.
+# Sharad asked Claude to run the draft pipeline himself; see eval/GOLD_BUILD.md.
+# Each pick names one or two phrases from the passage; eval/resolve_by_claude.py
+# takes the paper's original text from the start of the first phrase to the end
+# of the last (canonical record first) and writes it only if `map_span` finds it.
+# Review and override any pick with `rag eval resolve --id <id>`.
+
+spans:
+  L01: ["byte pair encoding (bpe) (gage, 1994) is a simple data compression technique that iteratively replaces the most frequent pair of bytes in a sequence with a single, unused byte"]
+  L02: ["sentencepiece first escapes the whitespace with a meta symbol _ (u+2581)"]
+  L03: ["we propose a new subword segmentation algorithm based on a unigram language model, which is capable of outputing multiple subword segmentations with probabilities"]
+  L04: ["we use p > 0 (usually p = 0.1) in training time", "at inference time we use the original bpe"]
+  L05: ["while t5 and mt5 used ''balanced'' architectures, we find byte-level models benefit significantly from a ''heavier'' encoder"]
+  L06: ["using a vocabulary of 256 possible byte values. an additional 3 ids are reserved for special tokens"]
+  L07: ["canine uses strided convolutions to downsample input sequences to a shorter length before the deep transformer stack"]
+  L10: ["the subword fertility measures the average number of subwords produced per tokenized word"]
+  L11: ["we predict that the optimal vocabulary size of llama2-70b should have been at least 216k, 7 times larger than its vocabulary of 32k"]
+  L12: ["we measure each on the same flores+ text per language", "all values are computed with the tokeval library"]
+  L14: ["tokenization fertility (rust et al., 2021;csaki et al., 2023)"]
+  M01:
+    - ["we find byt5 beats mt5 at the small and base sizes"]
+    - ["canine outperforms a comparable mbert model by 5.7 f1 on tydi qa"]
+    - ["character-level and byte-level models also exhibit over 4 times the difference in the encoding length"]
+    - ["costs +33% pre-training time, as well as longer inference time (up to 10× slower in the worst case)"]
+  M02:
+    - ["segmentations produced by the unigram lm method correspond more closely to the morphological references"]
+    - ["bpe and unigram language model without subword regularization (l = 1) show almost comparable bleu scores"]
+  M04:
+    - ["the same text translated into different languages can have drastically different tokenization lengths, with differences up to 15 times in some cases"]
+    - ["disparate fragmentation rates in different languages can lead to significantly high usage costs for less represented languages"]
+    - ["with monolingual tokenizers with lower fertility and proportion-of-continued-words values than the mbert tokenizer"]
+  M05:
+    - ["the tokenizer choice can significantly impact the model's downstream performance and training costs"]
+    - ["for (almost) every task and language, the use of monolingual tokenizers outperforms the mbert tokenizer"]
+    - ["unigram lm tokenization method matches or outperforms bpe"]
+  M06:
+    - ["the subword fertility measures the average number of subwords produced per tokenized word"]
+    - ["tokenizers should produce similar encoded lengths for the same content across languages"]
+    - ["defining efficiency in terms of rényi entropy, on the other hand, penalizes distributions with either very high or very low-frequency tokens"]
+    - ["all values are computed with the tokeval library"]
+  M07:
+    - ["we predict that the optimal vocabulary size of llama2-70b should have been at least 216k, 7 times larger than its vocabulary of 32k"]
+    - ["multilingual tokenizers trained on the five most frequent european languages require vocabulary size increases of factor three in comparison to english"]
+    - ["vocabulary size has little impact on coding performance"]
+  M08:
+    - ["trains the model with multiple subword segmentations probabilistically sampled during training"]
+    - ["when some merges are randomly forbidden during segmentation, words end up segmented in different subwords"]
+  C3-T1:
+    - ["the subword fertility measures the average number of subwords produced per tokenized word"]
+    - ["fertility is defined as the average number of subwords that a tokenizer splits a word into"]
+  C3-T2:
+    - ["it leads to unfairness in the cost to access language models, the latency of the service and the amount of data that can be processed"]
+    - ["this directly increases cost of api usage for certain language speakers"]
+    - ["with monolingual tokenizers with lower fertility and proportion-of-continued-words values than the mbert tokenizer"]
+  C3-T3: ["tokenization fertility is the primary metric for our experiments and comparisons", "no preprocessing was used during the fertility calculation"]
+  C4-T1: ["right-to-left tokenization (enforced by comma separating numbers at inference time) leads to largely improved performance"]
+  C4-T2: ["to force the model to use r2l tokenization for numbers, we add commas every 3-digits from the right"]
+  U02: ["using a vocabulary of 256 possible byte values"]
+  U06: ["subword models improve over a back-off dictionary baseline for the wmt 15 translation tasks english→german and english→russian"]
+
+# Unanswerable kind per not-answerable question (none was in the draft).
+kinds:
+  U02: false_premise        # 250k is mT5's vocabulary; ByT5 uses 256 byte values
+  U04: not_covered          # no indexed paper is from 2027 (manifest max year 2026)
+  U05: nonexistent_detail   # no Swahili in either BPE-dropout record
+  U06: false_premise        # Sennrich et al. evaluate En-De and En-Ru, not Hindi
+  C4-T3: nonexistent_detail # no cost figures in the Singh & Strouse paper
+
+# Absent checks run by Claude (term -> hits), scoped to the paper the question is about.
+absent:
+  C4-T3: {paper: "arxiv:2402.14903v1", confirmed: true}   # one "$" hit is a digit separator
+  U05: {paper: "acl:2020.acl-main.170", confirmed: true}
+  U06: {paper: "acl:P16-1162", confirmed: true}
+  U01: {confirmed: false}  # a table reports "Claude 2.1 65k" vocabulary: answerable
+  U03: {confirmed: false}  # RLHF reward-model training is described in several chunks
+  U07: {confirmed: false}  # visual-tokenizer + diffusion papers are in the corpus
+
+# Left unverified (status stays draft), with the reason. eval/GOLD_BUILD.md lists them.
+skip:
+  L08: "MEGABYTE (2305.07185) is not in the corpus"
+  L09: "Byte Latent Transformer (2412.09871) is not in the corpus"
+  L13: "MorphPiece's fertility comparison is only in v1 (arxiv:2307.07262v1); v2 is canonical, so the dedup mask hides it from every deployed retriever"
+  M03: "2 of its 5 gold papers (MEGABYTE, BLT) are not in the corpus"
+  C1-T1: "MEGABYTE and BLT gold papers are not in the corpus (conversation C1 held back whole)"
+  C1-T2: "conversation C1 held back: T1, T3, T4 depend on missing papers"
+  C1-T3: "MEGABYTE gold paper is not in the corpus"
+  C1-T4: "MEGABYTE and BLT gold papers are not in the corpus"
+  C2-T1: "conversation C2 held back: C2-T2 has no passage"
+  C2-T2: "the SentencePiece paper never mentions WordPiece (0 chunks); the gold paper would need relabelling"
+  C2-T3: "conversation C2 held back: C2-T2 has no passage"
+  U01: "answerable: a table in the corpus gives Claude 2.1's vocabulary (65k); relabel or rewrite"
+  U03: "partly answerable: chunks describe RLHF reward-model training; relabel or rewrite"
+  U07: "answerable: the corpus has visual-tokenizer/diffusion papers (collection gap); relabel or rewrite"
