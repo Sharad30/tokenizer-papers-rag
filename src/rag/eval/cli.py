@@ -245,6 +245,52 @@ def answers(ctx: typer.Context, limit: LimitOption = None) -> None:
     typer.echo(f"{len(done)} answers -> {out}")
 
 
+def _answers_path(config: Config, answers: Path | None) -> Path:
+    if answers:
+        return answers
+    found = sorted(config.paths.results.glob("*-answers.jsonl"))
+    if not found:
+        typer.echo("No answers yet: run `rag eval answers` first.", err=True)
+        raise typer.Exit(1)
+    return found[-1]
+
+
+AnswersFile = Annotated[
+    Path | None, typer.Option("--answers", help="Answers file (default: the newest)")
+]
+
+
+@app.command()
+def label(
+    ctx: typer.Context,
+    answers: AnswersFile = None,
+    id: Annotated[str | None, typer.Option("--id", help="Only this question")] = None,  # noqa: A002
+) -> None:
+    """Judge the chat's answers by hand: each claim, each answer, each follow-up rewrite."""
+    from rag.common.io import read_jsonl
+    from rag.eval import labels as labels_mod
+    from rag.eval.answers import AnswerRecord
+
+    config = get_config(ctx)
+    path = _answers_path(config, answers)
+    records = read_jsonl(path, AnswerRecord)
+    questions, _ = validate_mod.load_questions(config.paths.eval / config.eval.questions_file)
+    gists = {q.id: [g.answer_gist for g in q.gold if g.answer_gist] for q in questions}
+    out = labels_mod.labels_path(path)
+    labels = labels_mod.read_labels(out)
+    added = labels_mod.label_all(
+        records,
+        gists,
+        _chunk_texts(config),
+        labels,
+        ask=lambda prompt: typer.prompt(prompt, default="", show_default=False),
+        say=typer.echo,
+        save=labels_mod.save_to(out),
+        only=id,
+    )
+    typer.echo(f"\n{added} label(s) added; {len(labels)} in {out}")
+
+
 @app.command()
 def validate(
     ctx: typer.Context,
