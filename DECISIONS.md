@@ -654,6 +654,17 @@ deleted: a changed decision gets a new entry, and the old one is marked
   - latency matters more than recall (drop the reranker: 14 ms vs 4 s);
   - questions become paper-to-paper ("papers like X"), where SPECTER2's training fits;
   - a model is changed. The chat gate threshold 0.70 (D-036) is a bge-small cosine. SPECTER2's cosines bunch around 0.75, so a model change needs `probes/phase-7-gate.py` rerun, and `rag dedup run` needs rerunning too (restatements use the dense vectors).
+- Update 2026-11-02 (gold set): `results/2026-11-02-embeddings-ablation.md`, 28 gold questions (23 scored), run at 0e564fa. Paired on gold, a minus b:
+  - **Hybrid vs BM25: +0.109 [0.000, 0.239].** The silver result (BM25 ahead by 0.106) reverses, which is the silver wording bias D-044 predicted. Keyword search alone is not enough.
+  - **Hybrid vs dense: +0.174 [0.043, 0.348].** It holds on gold, so keep BM25 in hybrid.
+  - **Reranker: +0.022 [-0.130, 0.174]** (2 better, 2 worse). Silver's +0.182 doesn't replicate, so the case for paying about 4 s per query is gone for now. Keep it off.
+  - **bge-base vs bge-small: +0.043 [0.000, 0.130]** (1 question better, 0 worse). Still not a measurable gain for 2× cost.
+  - **SPECTER2 hybrid: −0.087 [−0.217, 0.000].** Still no case for it.
+  - **bge query prompt off: better by 0.130 [0.000, 0.261]** on gold, the opposite of silver. With 23 questions and an interval touching 0, treat it as unresolved, not as a reason to drop the prompt.
+
+  The choice stands: bge-small hybrid, no reranker.
+
+  Chunk Recall@5 is low on gold (0.02–0.24) while paper recall@5 is about 0.5. Each gold entry names one passage, the per-work cap shows one chunk per paper, and restating papers answer the multi-paper questions without being gold. These numbers rank setups; they don't give absolute quality. Widening gold (more acceptable passages per paper, restating papers as alternatives) is Sharad's call. Recommendation still provisional until Sharad's review of the gold set (D-045).
 
 ## D-044: A silver question set until the gold set exists
 - Date / Phase: 2026-10-29 / Phase 6
