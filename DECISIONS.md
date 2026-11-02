@@ -712,3 +712,4 @@ deleted: a changed decision gets a new entry, and the old one is marked
   - U02 and U04 have no terms.
 - Tuned on eval set?: n/a
 - Revisit if: the drafts are rewritten so heavily that they're effectively hand-written. Then origin `hand` is the honest label.
+- Update 2026-11-02: at Sharad's request Claude ran the pipeline instead of Sharad picking spans: 28 of 42 questions in `eval/questions.jsonl`, every span mapping; 14 skipped with reasons (`eval/GOLD_BUILD.md`, picks in `eval/claude_resolution.yaml`). Provenance on every question says Claude picked the spans; Sharad's review is pending. `finalize` now drops a turn-1 oracle_rewrite identical to the question (all four drafted conversations had one).
