@@ -58,7 +58,7 @@ own, plus a `stats.json`. Every setting is in `config.yaml`.
  ═══════════════════            ═══════════════════════════════════════════
  ┌──────────────────────┐   ┌──────────────────────────────────────────────┐
  │ 3 EVAL SET           │   │ 7 CHAT                       rag chat        │
- │  eval/questions.jsonl│   │   src/rag/chat/                              │
+ │  eval/gold/questions.jsonl│   │   src/rag/chat/                              │
  │  (Sharad writes;     │   │                                              │
  │   gold = verbatim    │   │  user text ─▶ a REWRITE (turn ≥ 2)  LLM call │
  │   spans)             │   │                │ standalone query            │
@@ -136,7 +136,7 @@ answer evaluation that reads the chat transcripts.
   copy spans, and `validate` checks the file.
 - **Code:** `src/rag/eval/` (`schemas.py`, `spans.py`, `find.py`,
   `validate.py`).
-- **Output:** `eval/questions.jsonl` (yours, not written yet).
+- **Output:** `eval/gold/questions.jsonl` (yours, not written yet).
 - **Decisions:** D-022 to D-025. **Note:** `notes/phase-3-eval.md`.
 
 ### 4. Index + retriever + harness: finding chunks, and scoring that

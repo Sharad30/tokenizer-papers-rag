@@ -1,4 +1,4 @@
-# How eval/questions.jsonl was built (2026-11-02)
+# How eval/gold/questions.jsonl was built (2026-11-02)
 
 Sharad asked Claude to run the drafted-questions pipeline himself: link each
 drafted question to passages in the current corpus, skip questions whose
@@ -9,7 +9,7 @@ Sharad's request (2026-11-02)". `origin` says `llm_assisted`, whose
 definition assumes Sharad verified each question; that holds only once he
 has reviewed them (see "Reviewing" below).
 
-Result: **28 of 42 drafted questions** in `eval/questions.jsonl`. Every
+Result: **28 of 42 drafted questions** in `eval/gold/questions.jsonl`. Every
 gold span maps to a chunk. 14 were skipped (listed below).
 
 ## Commands, in order
@@ -31,19 +31,19 @@ uv run rag eval find "reward model"                      # U03
 uv run rag eval find "image tokenizer diffusion" --all-words   # U07
 
 # 3. Candidate passages per gold entry (the list `rag eval resolve` shows):
-#    read for every entry, then the picks were written to eval/claude_resolution.yaml
+#    read for every entry, then the picks were written to eval/gold/claude_resolution.yaml
 
 # 4. Apply the picks to the draft (dry run first, then write; keeps a .bak)
-uv run python eval/resolve_by_claude.py
-uv run python eval/resolve_by_claude.py --write
+uv run python eval/gold/resolve_by_claude.py
+uv run python eval/gold/resolve_by_claude.py --write
 
 # 5. Write the eval set from the verified entries and validate it
 uv run rag eval finalize          # --force to replace an existing questions.jsonl
 ```
 
-`eval/resolve_by_claude.py` does what `rag eval resolve` does with a person
+`eval/gold/resolve_by_claude.py` does what `rag eval resolve` does with a person
 at the keyboard, through the same functions (`Corpus.match`, `check_span`,
-`with_span`, `absent_hits`). Each pick in `eval/claude_resolution.yaml` names
+`with_span`, `absent_hits`). Each pick in `eval/gold/claude_resolution.yaml` names
 one or two phrases from the passage. The span is the paper's original text
 from the start of the first phrase to the end of the last, on one line. It
 is written only if `map_span` finds it in the gold paper, with the canonical
@@ -51,8 +51,8 @@ record checked first.
 
 ## What changed in the draft
 
-`eval/questions.draft.jsonl` was rewritten. The version before the write is
-`eval/questions.draft.jsonl.bak`: Sharad's original draft, which was never
+`eval/gold/questions.draft.jsonl` was rewritten. The version before the write is
+`eval/gold/questions.draft.jsonl.bak`: Sharad's original draft, which was never
 committed.
 
 For each of the 28 resolved questions:
@@ -112,7 +112,7 @@ the question. A different rewrite would still be refused.
 
 ## Reviewing or changing a pick
 
-- **Read the picks:** `eval/claude_resolution.yaml` lists them; each question's span, record and section are in `eval/questions.jsonl`.
+- **Read the picks:** `eval/gold/claude_resolution.yaml` lists them; each question's span, record and section are in `eval/gold/questions.jsonl`.
 - **Redo one:** `uv run rag eval resolve --id L04` (interactive), then `uv run rag eval finalize --force`.
 - **Bring back a skipped question:** fix it in the draft (a new gold paper for C2-T2, new labels for U01/U03/U07, or add MEGABYTE/BLT to the corpus), set `"status": "verified"`, then finalize.
 - **Once reviewed:** change `provenance` back to `llm_drafted`, so `origin: llm_assisted` is accurate.

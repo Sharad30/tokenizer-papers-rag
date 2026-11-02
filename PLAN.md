@@ -83,7 +83,8 @@ data/
   works/        # Phase 5: work_id clusters, restatement links
   index/        # Phase 4/6: BM25 + dense indexes, one folder per model
 eval/
-  questions.jsonl   # Phase 3 (committed)
+  gold/             # Phase 3: questions.jsonl, its draft, picks and build log (committed)
+  silver/           # Phase 6: LLM-written silver questions (committed)
   pairs.jsonl       # Phase 5 labelled duplicate pairs (committed)
 results/            # every eval run: JSON + markdown table (committed)
 docs/figures/       # plots from rag report (committed)
@@ -236,7 +237,7 @@ Phases 1 and 2 have long-running jobs (downloads, GROBID). Start them in the bac
 - Why gold should be robust to re-chunking.
 
 **Build (Claude Code).**
-- Schema (`eval/questions.jsonl`): id, type, question, conversation_id + turn, oracle standalone rewrite (follow-ups), answerable flag, gold list of `{paper / work identifiers, section, verbatim span}`, `duplicate_sensitive` flag, notes on known restatements.
+- Schema (`eval/gold/questions.jsonl`): id, type, question, conversation_id + turn, oracle standalone rewrite (follow-ups), answerable flag, gold list of `{paper / work identifiers, section, verbatim span}`, `duplicate_sensitive` flag, notes on known restatements.
 - Span-finder helper: grep/fuzzy search over parsed text to locate spans for questions you've already written. Not the retriever, no ranking, so no pooling bias.
 - Validator: every gold span maps to at least one chunk; unmapped spans listed; type mix checked.
 

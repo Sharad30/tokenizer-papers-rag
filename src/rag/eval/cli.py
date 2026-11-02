@@ -156,7 +156,7 @@ def finalize(
     file: DraftFile = None,
     force: Annotated[bool, typer.Option("--force", help="Overwrite an existing eval set")] = False,
 ) -> None:
-    """Write eval/questions.jsonl from the draft entries marked status=verified, then validate."""
+    """Write eval/gold/questions.jsonl from draft entries marked status=verified, then validate."""
     from rag.common.io import write_jsonl
 
     config = get_config(ctx)

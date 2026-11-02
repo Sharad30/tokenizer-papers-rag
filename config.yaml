@@ -10,7 +10,7 @@ paths:
   parsed: data/parsed      # Phase 2: sections, chunks, references (gitignored)
   works: data/works        # Phase 5: work_id clusters (gitignored)
   index: data/index        # Phase 4/6: BM25 + dense indexes (gitignored)
-  eval: eval               # Phase 3: questions.jsonl, pairs.jsonl (committed)
+  eval: eval               # Phase 3: gold/questions.jsonl, pairs.jsonl (committed)
   results: results         # Phase 4+: eval runs (committed)
   figures: docs/figures    # Phase 4+: plots from `rag report` (committed)
   chat: data/chat          # Phase 7: chat transcripts, one JSONL per session (gitignored)
@@ -213,7 +213,7 @@ dedup:
     topical_pool: 300         # most similar abstract pairs by different authors
 
 eval:
-  questions_file: questions.jsonl   # Sharad's questions, under paths.eval
+  questions_file: gold/questions.jsonl   # the gold set, under paths.eval (eval/gold/GOLD_BUILD.md)
   pairs_file: pairs.jsonl              # Sharad's labelled record pairs (D-042)
   # PLAN's mix (about 36 questions), as minimums per type (D-025).
   mix_min:
@@ -227,7 +227,7 @@ eval:
   find:
     max_hits: 30
   draft:                      # LLM-drafted questions -> gold by hand (D-045)
-    file: questions.draft.jsonl
+    file: gold/questions.draft.jsonl
     title_min_ratio: 90       # check-papers: fuzzy title fallback when no id matches
     max_candidates: 15        # resolve: passages listed per gold entry
     excerpt_chars: 160        # either side of the first matching term
@@ -281,7 +281,7 @@ eval:
       queries_file: phase-5-queries.txt   # probe queries: dup@5 and latency
       mode: hybrid
       question_files:         # scored separately, never pooled
-        gold: questions.jsonl            # Sharad's (when it exists)
+        gold: gold/questions.jsonl       # the gold set (eval/gold/GOLD_BUILD.md)
         silver: silver/questions.jsonl   # LLM-written (D-044)
       conditions:             # all with Phase 5 duplicate handling on (deployed)
         - {name: bm25, label: BM25 only, mode: bm25}

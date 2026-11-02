@@ -1,6 +1,6 @@
-# Gold spans picked by Claude (not Sharad) for eval/questions.draft.jsonl, 2026-11-02.
-# Sharad asked Claude to run the draft pipeline himself; see eval/GOLD_BUILD.md.
-# Each pick names one or two phrases from the passage; eval/resolve_by_claude.py
+# Gold spans picked by Claude (not Sharad) for eval/gold/questions.draft.jsonl, 2026-11-02.
+# Sharad asked Claude to run the draft pipeline himself; see eval/gold/GOLD_BUILD.md.
+# Each pick names one or two phrases from the passage; eval/gold/resolve_by_claude.py
 # takes the paper's original text from the start of the first phrase to the end
 # of the last (canonical record first) and writes it only if `map_span` finds it.
 # Review and override any pick with `rag eval resolve --id <id>`.
@@ -75,7 +75,7 @@ absent:
   U03: {confirmed: false}  # RLHF reward-model training is described in several chunks
   U07: {confirmed: false}  # visual-tokenizer + diffusion papers are in the corpus
 
-# Left unverified (status stays draft), with the reason. eval/GOLD_BUILD.md lists them.
+# Left unverified (status stays draft), with the reason. eval/gold/GOLD_BUILD.md lists them.
 skip:
   L08: "MEGABYTE (2305.07185) is not in the corpus"
   L09: "Byte Latent Transformer (2412.09871) is not in the corpus"

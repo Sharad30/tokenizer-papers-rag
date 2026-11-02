@@ -1,14 +1,14 @@
-"""Apply eval/claude_resolution.yaml to eval/questions.draft.jsonl (one-off, 2026-11-02).
+"""Apply eval/gold/claude_resolution.yaml to eval/gold/questions.draft.jsonl (one-off, 2026-11-02).
 
 Sharad asked Claude to run the draft pipeline instead of picking spans by
-hand (eval/GOLD_BUILD.md). This does what `rag eval resolve` would with
+hand (eval/gold/GOLD_BUILD.md). This does what `rag eval resolve` would with
 Claude at the keyboard, through the same functions: each phrase is expanded
 to the original text from its first to its last phrase in the gold paper's
 chunks (canonical record first), and written only if `check_span` maps it. Questions, gists
 and labels are not edited; provenance records that Claude resolved them.
 
-Run:  uv run python eval/resolve_by_claude.py            (prints what it would write)
-      uv run python eval/resolve_by_claude.py --write    (writes the draft, keeps a .bak)
+Run:  uv run python eval/gold/resolve_by_claude.py            (prints what it would write)
+      uv run python eval/gold/resolve_by_claude.py --write    (writes the draft, keeps a .bak)
 """
 
 import sys

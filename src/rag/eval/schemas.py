@@ -1,4 +1,4 @@
-"""The eval question format (`eval/questions.jsonl`), one Question per line.
+"""The eval question format (`eval/gold/questions.jsonl`), one Question per line.
 
 Rules that concern a single question live in the model validator, so a bad
 line fails as soon as it is read. Rules across questions (unique ids,

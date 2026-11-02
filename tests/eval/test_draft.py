@@ -402,7 +402,8 @@ def test_finalize_cli_never_overwrites_an_eval_set_without_force(
     config["paths"]["eval"] = str(tmp_path)
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
-    existing = tmp_path / "questions.jsonl"
+    existing = tmp_path / config["eval"]["questions_file"]
+    existing.parent.mkdir(parents=True, exist_ok=True)
     existing.write_text("Sharad's set\n", encoding="utf-8")
     result = CliRunner().invoke(app, ["--config", str(config_path), "eval", "finalize"])
     assert result.exit_code == 1 and "--force" in result.output

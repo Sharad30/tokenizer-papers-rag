@@ -1,7 +1,8 @@
 # Eval set
 
-`questions.jsonl` holds the retrieval and answer eval questions, one JSON
-object per line. Sharad writes them (PLAN Phase 3: "You do. All of it");
+`gold/questions.jsonl` holds the retrieval and answer eval questions, one
+JSON object per line; `gold/` also keeps its draft, the span picks and the
+build log (`gold/GOLD_BUILD.md`). `silver/` holds the LLM-written silver set. Sharad writes them (PLAN Phase 3: "You do. All of it");
 the tooling checks them, and for drafted questions writes only the spans
 and labels he picks (`rag eval finalize`, below). Never edit gold labels
 here with a script or an LLM on anyone else's judgement.
@@ -49,7 +50,7 @@ here with a script or an LLM on anyone else's judgement.
 
 ## Drafted questions (D-045)
 
-`questions.draft.jsonl` holds questions an LLM drafted. Each gold entry
+`gold/questions.draft.jsonl` holds questions an LLM drafted. Each gold entry
 names its paper (`arxiv_id` / `alt_id` / `title`) and gives `span_search`
 terms and an `answer_gist`, with `span: null`. The tools below show
 evidence and write only what Sharad picks: they never choose a span or
@@ -73,12 +74,12 @@ edit a question, gist or label. Only Sharad runs `resolve`, `absent` and
    the verdict goes into `absent_check`.
 4. Set `"status": "verified"` by hand on each question you have checked
    (`"rejected"` keeps a dropped one in the file).
-5. `uv run rag eval finalize`: writes `questions.jsonl` from the verified
+5. `uv run rag eval finalize`: writes `gold/questions.jsonl` from the verified
    entries and runs `validate`. Draft-only hints are dropped; `provenance`,
    `expected_behavior`, `absent_check` and each span's `answer_gist` are
    kept, and `origin` becomes `llm_assisted`. Unresolved entries are
    refused with the reason, and a conversation with an unready turn is held
-   back whole. It never overwrites an existing `questions.jsonl` without
+   back whole. It never overwrites an existing `gold/questions.jsonl` without
    `--force`.
 
 A false-premise question (`unanswerable_kind: false_premise`) may carry

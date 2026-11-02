@@ -1,13 +1,13 @@
 """Drafted questions to a verified eval set (D-045).
 
-`eval/questions.draft.jsonl` holds questions an LLM drafted: each gold entry
+`eval/gold/questions.draft.jsonl` holds questions an LLM drafted: each gold entry
 names its paper (arXiv id, other id, title) and gives search terms and a
 gist, but no span. Sharad turns each into gold by hand:
 
     rag eval check-papers   which gold papers are in the corpus
     rag eval resolve        pick a verbatim span per gold entry (interactive)
     rag eval absent         check that unanswerable questions really aren't answered
-    rag eval finalize       write eval/questions.jsonl from entries marked verified
+    rag eval finalize       write eval/gold/questions.jsonl from entries marked verified
 
 The tools show evidence and write only what Sharad picks. They never choose
 a span, and never change a question, gist or label. Candidates come in
@@ -545,7 +545,7 @@ def check_absent(
     return q.model_copy(update={"absent_check": check})
 
 
-# --- finalize: verified drafts to eval/questions.jsonl ------------------------------
+# --- finalize: verified drafts to eval/gold/questions.jsonl ------------------------------
 
 
 class Finalized(StrictModel):

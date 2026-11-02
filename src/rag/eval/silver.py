@@ -1,6 +1,6 @@
 """`rag eval silver`: an LLM-generated question set, kept apart from the gold set (D-044).
 
-Sharad's hand-written questions (eval/questions.jsonl) are the eval set.
+Sharad's hand-written questions (eval/gold/questions.jsonl) are the eval set.
 Until they exist, this gives provisional numbers: sample one chunk per
 paper, ask the local LLM for a question the chunk answers and the sentence
 that answers it, keep the question only if that sentence really is in the

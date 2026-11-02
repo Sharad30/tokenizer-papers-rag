@@ -152,7 +152,7 @@ else:
         f"`results/{data.results_file}` (commit {result.git_commit[:8]}). Silver questions "
         "were written by an LLM from one passage each (D-044): one gold passage per "
         "question, single-paper lookups, wording that can favour BM25. Gold numbers replace "
-        "them once eval/questions.jsonl exists."
+        "them once eval/gold/questions.jsonl exists."
     )
 
 terms = FIGURES / "phase6-terms.png"

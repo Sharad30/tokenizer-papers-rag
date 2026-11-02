@@ -235,5 +235,5 @@ data/chat/
 # make smoke works in .smoke/ (a config copy, its own data): throwaway
 .smoke/
 
-# Backups written by `rag eval resolve` / `absent` (eval/*.bak)
-eval/*.bak
+# Backups written by `rag eval resolve` / `absent` (eval/**/*.bak)
+eval/**/*.bak
