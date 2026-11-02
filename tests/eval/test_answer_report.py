@@ -136,3 +136,17 @@ def test_figure_renders_with_and_without_labels(tmp_path) -> None:
         path = tmp_path / f"fig-{report.labelled}.png"
         rep.plot(report, path)
         assert path.stat().st_size > 0
+
+
+def test_an_unrewritten_follow_up_is_blamed_on_the_rewrite_not_the_gate() -> None:
+    followup = rec(
+        "C1-T2",
+        0.60,
+        type="followup",
+        user="How did they do it?",
+        rewrite="How did they do it?",
+        oracle_rewrite="How did Smith et al. do it?",
+    )
+    found = rep.failures([followup], 0.70, labels())[0]
+    assert found.stage == "rewrite" and found.what == "false abstention (gate)"
+    assert any("returned it unchanged" in e for e in found.evidence)

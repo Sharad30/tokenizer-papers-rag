@@ -156,10 +156,12 @@ def failures(records: Sequence[AnswerRecord], threshold: float, labels: Labels) 
 
 
 def _stage(r: AnswerRecord, refused: str | None, labels: Labels) -> str:
+    # A follow-up sent on unrewritten ("they", "that approach") fails downstream,
+    # whichever gate then refuses it: the rewrite is the first stage that went wrong.
+    if _unrewritten(r) or labels.rewrite.get(r.question_id) == "different":
+        return "rewrite"
     if refused == "gate":
         return "gate"
-    if labels.rewrite.get(r.question_id) == "different":
-        return "rewrite"
     if r.answerable and not r.gold_papers_in_context:
         return "retrieval"
     return "generation"
@@ -173,12 +175,18 @@ def _evidence(r: AnswerRecord, labels: Labels) -> list[str]:
             f"gold passages in context {r.gold_passages_in_context:.2f}, "
             f"gold papers {r.gold_papers_in_context:.2f}"
         )
-    if r.rewrite != r.user:
+    if _unrewritten(r):
+        lines.append("follow-up retrieved with the user's words: the rewrite returned it unchanged")
+    elif r.rewrite != r.user:
         rewrite = labels.rewrite.get(r.question_id, "unlabelled")
         lines.append(f"rewrite ({rewrite}): {r.rewrite!r}; oracle: {r.oracle_rewrite!r}")
     if r.model_abstained:
         lines.append("the model answered NOT_SUPPORTED")
     return lines
+
+
+def _unrewritten(r: AnswerRecord) -> bool:
+    return r.type == "followup" and r.rewrite.strip() == r.user.strip()
 
 
 class Rate(StrictModel):
