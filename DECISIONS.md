@@ -731,3 +731,26 @@ deleted: a changed decision gets a new entry, and the old one is marked
 - Tuned on eval set?: n/a
 - Revisit if: the drafts are rewritten so heavily that they're effectively hand-written. Then origin `hand` is the honest label.
 - Update 2026-11-02: at Sharad's request Claude ran the pipeline instead of Sharad picking spans: 28 of 42 questions in `eval/questions.jsonl`, every span mapping; 14 skipped with reasons (`eval/GOLD_BUILD.md`, picks in `eval/claude_resolution.yaml`). Provenance on every question says Claude picked the spans; Sharad's review is pending. `finalize` now drops a turn-1 oracle_rewrite identical to the question (all four drafted conversations had one).
+
+## D-046: How the chat's answers are evaluated
+- Date / Phase: 2026-11-02 / Phase 8
+- Status: proposed
+- Context: Phase 8 needs honest numbers on what the chatbot says: groundedness per claim, abstention (with a threshold sweep), follow-up rewrites, a transcript, and a failure analysis. The generator is local qwen3:8b; PLAN asks for a judge from another model family.
+- Options considered (judge):
+  1. LLM judge from another family (Claude via API, or a second local model). Pros: cheap to rerun, scales to many questions. Cons: its biases (self-preference, verbosity, position) need a hand-labelled audit anyway. Claude needs an API key; a second local model is a weak judge.
+  2. qwen3:8b judging itself. Cons: self-preference bias, the weakest option.
+  3. **Sharad as the judge.** Pros: no judge bias to audit; about 100 claims is labellable by hand. Cons: one annotator, so no agreement figure; slower to rerun after a change.
+- Choice: 3 (Sharad's call, 2026-11-02). `rag eval label` shows each claim with the full passages it cites. Sharad labels:
+  - claims: supported / partial / unsupported;
+  - answers: correct / partial / wrong against the gold gist, or appropriate / inappropriate for an abstention;
+  - follow-up rewrites: equivalent / different to the oracle.
+
+  PLAN's "judge audit" becomes this note: with a human judge there is no model to audit, and the single-annotator limit is reported instead.
+
+  Other design choices:
+  - **Claims = sentences** (`chat.citations.claim_sentences`, the same split the uncited count uses). This is coarser than FActScore's atomic facts but deterministic; "partial" covers a sentence that mixes supported and unsupported content.
+  - **One run, simulated gate.** `rag eval answers` runs with the retrieval gate off, so every question gets an answer and a top cosine. `rag eval answer-report` then simulates any threshold exactly as the engine would (abstain if cosine < t or the model said NOT_SUPPORTED). The only difference is in conversations, where a refusal would change the next turn's history.
+  - **False premises:** handled if the chat abstains, or answers and Sharad labels the answer correct (it corrected the premise). The answer prompt (rule 4) currently tells the model to abstain on a contradicted premise, while U02/U06 expect `correct_premise`. Both count until Sharad's Phase 7 prompt change decides which behaviour is wanted.
+- Evidence (code-only, before labels; `results/2026-11-02-answer-report.md`): unanswerable handled 5/5 (all by the model's NOT_SUPPORTED), false abstention 1/23 (C4-T2: the follow-up reached retrieval unrewritten), uncited claims 36/94, invalid citations 0. In the sweep nothing changes below 0.80, and above it false abstention climbs fast. Follow-up paper recall@5 is 0.333 with the system rewrite against 0.667 with the oracle. Groundedness and correctness wait for Sharad's labels.
+- Tuned on eval set?: No threshold is changed. The sweep has only 5 unanswerable questions, and the report says it can't tune a threshold.
+- Revisit if: the eval set grows enough to make a second annotator or an audited LLM judge worthwhile.
