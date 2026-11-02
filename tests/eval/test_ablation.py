@@ -117,3 +117,22 @@ def test_pairs_must_name_conditions() -> None:
     AblationConfig(queries_file="q.txt", conditions=[condition], pairs=[("x", "x")])
     with pytest.raises(ValidationError, match="unknown conditions"):
         AblationConfig(queries_file="q.txt", conditions=[condition], pairs=[("x", "y")])
+
+
+def test_paired_and_table_report_paper_recall_when_results_have_it(repo_config_path) -> None:
+    from rag.common.config import load_config
+    from rag.eval.ablation import paired
+
+    config = load_config(repo_config_path)
+    results = {
+        "a": _condition("a", {"q1": 0.0, "q2": 1.0}),
+        "b": _condition("b", {"q1": 0.0, "q2": 0.0}),
+    }
+    assert "paper_recall@5" not in paired(results, config, "a", "b").diffs  # older results
+    for name, papers in (("a", [1.0, 1.0]), ("b", [0.0, 1.0])):
+        rows = results[name].sets["silver"].result.questions
+        for row, p in zip(rows, papers, strict=True):
+            row.metrics["paper_recall@5"] = p
+    cmp = paired(results, config, "a", "b")
+    assert cmp.diffs["paper_recall@5"].mean == 0.5
+    assert cmp.diffs["recall@5"].mean == 0.5

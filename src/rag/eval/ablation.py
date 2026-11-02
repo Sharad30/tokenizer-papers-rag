@@ -398,6 +398,12 @@ def _per_question(result: ModeResult) -> dict[str, dict[str, float]]:
     return {q.question_id: q.metrics for q in result.questions if q.scored and q.variant == "raw"}
 
 
+def _metric_names(config: Config) -> tuple[str, str, str]:
+    """Recall@k (the gold passage), paper recall@k (the gold paper), MRR."""
+    k = config.eval.recall_k
+    return f"recall@{k}", f"paper_recall@{k}", f"mrr@{config.eval.mrr_cutoff}"
+
+
 def _set_label(results: dict[str, ConditionResult]) -> str | None:
     """Gold if it exists, else the first set by name."""
     labels = {label for c in results.values() for label in c.sets}
@@ -430,12 +436,14 @@ def paired(
     label = _set_label(results)
     if label is None or label not in results[a].sets or label not in results[b].sets:
         return None
-    rk, mrr = f"recall@{config.eval.recall_k}", f"mrr@{config.eval.mrr_cutoff}"
+    rk, prk, mrr = _metric_names(config)
     qa = _per_question(results[a].sets[label].result)
     qb = _per_question(results[b].sets[label].result)
     shared = sorted(set(qa) & set(qb))
     diffs = {}
-    for metric in (rk, mrr):
+    for metric in (rk, prk, mrr):
+        if not all(metric in qa[q] and metric in qb[q] for q in shared):
+            continue  # results written before the metric existed
         mean, low, high = paired_bootstrap_diff(
             [qa[q][metric] for q in shared],
             [qb[q][metric] for q in shared],
@@ -485,13 +493,13 @@ def _cost_cell(costs: Sequence[Cost]) -> tuple[str, str, str]:
 
 def table(result: AblationResult, config: Config) -> str:
     k = config.eval.dup_k
-    rk, mrr = f"recall@{config.eval.recall_k}", f"mrr@{config.eval.mrr_cutoff}"
+    rk, prk, mrr = _metric_names(config)
     labels = sorted({label for c in result.conditions.values() for label in c.sets})
     any_set = next(iter(result.conditions.values())).sets if result.conditions else {}
     set_desc = ", ".join(f"{label} ({any_set[label].n_questions} questions)" for label in labels)
     header = ["Condition"]
     for label in labels:
-        header += [f"{rk} ({label})", f"{mrr} ({label})"]
+        header += [f"{rk} ({label})", f"{prk} ({label})", f"{mrr} ({label})"]
     header += [f"dup@{k}", f"copy_dup@{k}", "latency p50 / p95", "index build", "dims", "size"]
     lines = [
         f"# Ablation `{result.run}`",
@@ -508,7 +516,7 @@ def table(result: AblationResult, config: Config) -> str:
         row = [c.label]
         for label in labels:
             overall = c.sets[label].result.aggregates.get("overall", {}) if label in c.sets else {}
-            row += [_cell(overall.get(rk)), _cell(overall.get(mrr))]
+            row += [_cell(overall.get(rk)), _cell(overall.get(prk)), _cell(overall.get(mrr))]
         build, dims, size = _cost_cell(c.cost)
         latency = (
             f"{c.latency_ms['p50']:.0f} / {c.latency_ms['p95']:.0f} ms" if c.latency_ms else "–"
@@ -537,17 +545,23 @@ def table(result: AblationResult, config: Config) -> str:
             "",
             f"**Paired comparisons ({result.pairs[0].set}, a minus b):**",
             "",
-            f"| a | b | {rk} | {mrr} | a higher / lower / equal |",
-            "|---|---|---|---|---|",
+            f"| a | b | {rk} | {prk} | {mrr} | a higher / lower / equal |",
+            "|---|---|---|---|---|---|",
         ]
         for cmp in result.pairs:
             a, b = result.conditions[cmp.a].label, result.conditions[cmp.b].label
             lines.append(
-                f"| {a} | {b} | {_cell(cmp.diffs[rk])} | {_cell(cmp.diffs[mrr])} "
+                f"| {a} | {b} | {_cell(cmp.diffs[rk])} | {_cell(cmp.diffs.get(prk))} "
+                f"| {_cell(cmp.diffs[mrr])} "
                 f"| {cmp.wins} / {cmp.losses} / {cmp.ties} |"
             )
     lines += [
         "",
+        f"- {rk}: share of a question's gold passages found in the top {config.eval.recall_k}"
+        " chunks;",
+        f"  {prk}: share of its gold papers (any copy) with any chunk there. A gap between",
+        "  them means the right paper came back with a different passage of it (the",
+        "  per-work cap shows one chunk per paper).",
         f"- dup@{k} (D-031): share of the top {k} slots whose paper already appeared higher;",
         f"  copy_dup@{k} counts only another record of the paper (a version or venue copy).",
         "  Judged by identifiers + labelled pairs (D-042): lower bounds until pairs are",
