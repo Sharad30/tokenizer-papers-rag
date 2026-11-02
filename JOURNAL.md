@@ -231,3 +231,19 @@ Phase: 6  ·  Type: decision
 ### Explaining the gap (Sharad):
 
 ### Follow-ups:
+
+## 2026-11-02: How well does the chat answer? (Phase 8)
+Phase: 8  ·  Type: prediction
+
+### Prediction (Sharad):
+(before labelling: share of claims supported, share of answers correct, how many of the 5 unanswerable questions the chat handles, and which pipeline stage you expect most failures to come from)
+
+### Why I expect this (Sharad):
+
+### What happened:
+(results/<date>-answer-report.md after `rag eval label`; docs/phase8-transcript.md)
+
+### Explaining the gap (Sharad):
+
+### Follow-ups:
+(PLAN's question: which single change would most improve the system, according to your failures?)
