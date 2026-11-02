@@ -1,0 +1,11 @@
+# Phase 8 transcript turns (written by Claude, 2026-11-02; edit and rerun freely).
+# One message per line, sent in order as one conversation:
+#   `uv run rag eval transcript --turns probes/phase-8-transcript.txt`
+# Covers: a lookup, follow-ups that only make sense with history, a question
+# the corpus can't answer, a return to the topic, and a false premise.
+What is tokenizer fertility, and how is it measured?
+Why is it a problem when fertility is high for a language?
+How much more does that cost someone using a commercial API in such a language?
+What did tokenization papers published in 2027 conclude about fertility?
+Going back to the Ukrainian study: how did it measure fertility?
+Why did ByT5 choose a 250,000-token vocabulary?
