@@ -226,6 +226,12 @@ eval:
   max_span_words: 60        # warn above: long spans risk crossing a chunk boundary
   find:
     max_hits: 30
+  answers:                    # Phase 8 answer evaluation (D-046)
+    sweep_start: 0.60         # gate thresholds simulated over the recorded top cosines
+    sweep_stop: 0.90
+    sweep_step: 0.01
+    figure: phase8-risk-coverage.png
+    followup_run: phase8-followups   # `rag eval run --rewrite --name phase8-followups`
   draft:                      # LLM-drafted questions -> gold by hand (D-045)
     file: gold/questions.draft.jsonl
     title_min_ratio: 90       # check-papers: fuzzy title fallback when no id matches

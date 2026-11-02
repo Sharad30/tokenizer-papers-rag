@@ -291,6 +291,41 @@ def label(
     typer.echo(f"\n{added} label(s) added; {len(labels)} in {out}")
 
 
+@app.command("answer-report")
+def answer_report(ctx: typer.Context, answers: AnswersFile = None) -> None:
+    """Abstention, groundedness, correctness, threshold sweep and failure candidates."""
+    from rag.common.io import read_jsonl, write_json, write_text_atomic
+    from rag.eval import answer_report as report_mod
+    from rag.eval import labels as labels_mod
+    from rag.eval.answers import AnswerRecord, AnswersMeta
+    from rag.eval.results import RunResult
+
+    config = get_config(ctx)
+    path = _answers_path(config, answers)
+    records = read_jsonl(path, AnswerRecord)
+    meta = AnswersMeta.model_validate_json(path.with_suffix(".json").read_text(encoding="utf-8"))
+    labels = report_mod.Labels(labels_mod.read_labels(labels_mod.labels_path(path)))
+    cfg = config.eval.answers
+    runs = sorted(config.paths.results.glob(f"*-{cfg.followup_run}.json"))
+    followups = RunResult.model_validate_json(runs[-1].read_text()) if runs else None
+    report = report_mod.build(
+        records,
+        meta,
+        path.name,
+        labels,
+        cfg.thresholds(),
+        (config.eval.bootstrap.samples, config.eval.bootstrap.seed),
+        followups,
+        runs[-1].name if runs else None,
+    )
+    out = path.with_name(path.name.replace("-answers.jsonl", "-answer-report.json"))
+    write_json(out, report)
+    write_text_atomic(out.with_suffix(".md"), report_mod.markdown(report))
+    report_mod.plot(report, config.paths.figures / cfg.figure)
+    typer.echo(report_mod.markdown(report))
+    typer.echo(f"-> {out}, {out.with_suffix('.md')}, {config.paths.figures / cfg.figure}")
+
+
 @app.command()
 def validate(
     ctx: typer.Context,

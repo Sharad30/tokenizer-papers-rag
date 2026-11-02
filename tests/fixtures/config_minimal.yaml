@@ -126,6 +126,12 @@ eval:
   max_span_words: 12
   find:
     max_hits: 3
+  answers:
+    sweep_start: 0.5
+    sweep_stop: 0.9
+    sweep_step: 0.1
+    figure: answers.png
+    followup_run: followups
   draft:
     file: questions.draft.jsonl
     title_min_ratio: 90

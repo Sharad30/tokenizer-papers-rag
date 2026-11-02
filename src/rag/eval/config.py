@@ -24,6 +24,20 @@ class DraftConfig(StrictModel):
     short_term_chars: int = Field(ge=1)  # terms this short match whole words only
 
 
+class AnswersConfig(StrictModel):
+    """Phase 8 answer evaluation (D-046)."""
+
+    sweep_start: float  # gate thresholds simulated by `rag eval answer-report`
+    sweep_stop: float
+    sweep_step: float = Field(gt=0)
+    figure: str  # under paths.figures
+    followup_run: str  # `rag eval run --rewrite --name <this>`: follow-up retrieval
+
+    def thresholds(self) -> list[float]:
+        n = round((self.sweep_stop - self.sweep_start) / self.sweep_step)
+        return [round(self.sweep_start + i * self.sweep_step, 4) for i in range(n + 1)]
+
+
 class BootstrapConfig(StrictModel):
     samples: int = Field(ge=100)
     seed: int
@@ -93,4 +107,5 @@ class EvalConfig(StrictModel):
     dup_k: int = Field(ge=1)
     bootstrap: BootstrapConfig
     silver: SilverConfig
+    answers: AnswersConfig
     ablations: dict[str, AblationConfig] = {}  # `rag eval ablate --name <key>`
