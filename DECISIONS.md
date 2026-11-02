@@ -683,3 +683,32 @@ deleted: a changed decision gets a new entry, and the old one is marked
   - Questions from one LLM's view of what is askable.
 - Tuned on eval set?: n/a
 - Revisit if: the gold set exists. Then gold numbers lead, and silver stays only as a check on how far the two agree (PLAN's synthetic-eval agreement explore).
+
+## D-045: LLM-drafted questions become gold only through Sharad's picks
+- Date / Phase: 2026-11-02 / Phase 3 (support)
+- Status: proposed
+- Context: Sharad added `eval/questions.draft.jsonl`: 42 LLM-drafted questions whose 64 gold entries name a paper and give search terms and an answer gist, but no span. PLAN Phase 3 allows LLM drafts only if Sharad verifies and rewrites each, and spans must be verbatim and map to chunks (D-022, D-023).
+- Options considered:
+  1. Hand-edit the draft with `rag eval find`. Pros: no new code. Cons: 64 spans copied by hand, typos only caught at validation, no record of which paper copy was used.
+  2. Fill spans automatically (best match for the search terms or the gist). Cons: the tool would decide the gold; that's pooling bias by another name, and against PLAN's "you do".
+  3. Interactive tools that show evidence and write only what Sharad picks, checked as the harness will score it. Pros: verbatim spans that provably map; the draft records progress; nothing is decided for him. Cons: more code.
+- Choice: 3. `check-papers` → `resolve` → `absent` → `finalize` (`src/rag/eval/draft.py`):
+  - **Never ranked:** candidates come in corpus order (D-024).
+  - **Spans must map:** a span is written only if `map_span` finds it, using the canonical record's chunk where the same text is in several copies.
+  - **Nothing pre-selected:** the unanswerable kind is picked from a list with no default.
+  - **Only verified entries:** `finalize` takes only entries Sharad marks verified, and keeps whole conversations together.
+
+  Schema changes (`eval/schemas.py`):
+  - false-premise questions may carry gold: the evidence that corrects the premise (decided with Sharad on 2026-11-02);
+  - new optional fields: `provenance`, `expected_behavior` (answer / abstain / correct_premise, for Phase 8), `absent_check`, and `answer_gist` per gold span (Phase 8's reference answer).
+
+  The harness still scores Recall/MRR only on answerable questions.
+- Evidence (`check-papers` and `absent --no-write` on the draft, 2026-11-02):
+  - 55 of 64 gold entries match an indexed record by id.
+  - **MEGABYTE (2305.07185) and Byte Latent Transformer (2412.09871) aren't in the corpus at all**, not even as rejected candidates. That affects C1-T1, C1-T3, C1-T4, L08, L09 and M03.
+  - Every `verify_absent` term has corpus hits, so corpus-wide counts can't confirm most unanswerable rows. They need `--paper` (C4-T3, U05, U06) or a closer look:
+    - U03: "reward model" in 10 papers;
+    - U07: "image tokenizer" in 17 papers.
+  - U02 and U04 have no terms.
+- Tuned on eval set?: n/a
+- Revisit if: the drafts are rewritten so heavily that they're effectively hand-written. Then origin `hand` is the honest label.
