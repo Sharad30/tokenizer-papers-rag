@@ -2,8 +2,9 @@
 
 `questions.jsonl` holds the retrieval and answer eval questions, one JSON
 object per line. Sharad writes them (PLAN Phase 3: "You do. All of it");
-the tooling only checks them. Never edit gold labels here with a script or
-an LLM.
+the tooling checks them, and for drafted questions writes only the spans
+and labels he picks (`rag eval finalize`, below). Never edit gold labels
+here with a script or an LLM on anyone else's judgement.
 
 ## Workflow
 
@@ -33,6 +34,10 @@ an LLM.
 | `duplicate_sensitive` | no | True when the answer is restated in other papers or copies. `validate` warns when a span appears elsewhere and this is false. |
 | `restatement_notes` | no | Which other papers restate it. |
 | `origin` | no | `hand` (default) or `llm_assisted` if an LLM drafted it and you rewrote it. |
+| `provenance` | no | Where a drafted question came from, kept verbatim (`llm_drafted`). |
+| `expected_behavior` | no | `answer`, `abstain` or `correct_premise` (Phase 8). |
+| `absent_check` | no | Terms searched for an unanswerable question, their hit counts, and your verdict. |
+| `gold[].answer_gist` | no | What a correct answer says: Phase 8's reference, never used for retrieval. |
 | `notes` | no | Anything else. |
 
 ## Example lines
@@ -41,6 +46,44 @@ an LLM.
 {"id": "q001", "type": "lookup", "question": "What does BPE iteratively replace?", "answerable": true, "gold": [{"record_id": "acl:P16-1162", "section": "Byte Pair Encoding", "span": "iteratively replaces the most frequent pair of bytes"}], "duplicate_sensitive": true, "restatement_notes": "the BPE definition is restated in 12 other records"}
 {"id": "q020", "type": "unanswerable", "question": "...", "answerable": false, "unanswerable_kind": "false_premise"}
 ```
+
+## Drafted questions (D-045)
+
+`questions.draft.jsonl` holds questions an LLM drafted. Each gold entry
+names its paper (`arxiv_id` / `alt_id` / `title`) and gives `span_search`
+terms and an `answer_gist`, with `span: null`. The tools below show
+evidence and write only what Sharad picks: they never choose a span or
+edit a question, gist or label. Only Sharad runs `resolve`, `absent` and
+`finalize`.
+
+1. `uv run rag eval check-papers`: is each gold paper in the corpus? It
+   matches by arXiv id (any version), then another record id, then a fuzzy
+   title, and lists missing, unindexed and title-only papers with the
+   questions they affect.
+2. `uv run rag eval resolve` (or `--id L01`): for each gold entry without a
+   span, it lists the paper's chunks containing any search term, in corpus
+   order (canonical record first). Open one (`3`), pick sentences (`2` or
+   `2-3`) or type a span (`e`), search other words (`t <words>`), skip (`k`)
+   or quit (`q`). A span is saved only if it maps to a chunk, together with
+   its record and section. Unanswerable rows ask for `unanswerable_kind`.
+   The draft is saved after every change, with a `.bak`.
+3. `uv run rag eval absent` (`--id U05 --paper <record_id>` for a question
+   about one paper; `--no-write` to just look): hit counts and examples for
+   each `verify_absent` term. Confirm (`c`) or flag for relabelling (`r`);
+   the verdict goes into `absent_check`.
+4. Set `"status": "verified"` by hand on each question you have checked
+   (`"rejected"` keeps a dropped one in the file).
+5. `uv run rag eval finalize`: writes `questions.jsonl` from the verified
+   entries and runs `validate`. Draft-only hints are dropped; `provenance`,
+   `expected_behavior`, `absent_check` and each span's `answer_gist` are
+   kept, and `origin` becomes `llm_assisted`. Unresolved entries are
+   refused with the reason, and a conversation with an unready turn is held
+   back whole. It never overwrites an existing `questions.jsonl` without
+   `--force`.
+
+A false-premise question (`unanswerable_kind: false_premise`) may carry
+gold: the evidence that corrects the premise. Other unanswerable kinds
+have none.
 
 ## Target mix (config `eval.mix_min`)
 
