@@ -326,3 +326,84 @@ def test_absent_check_writes_nothing_on_skip_or_without_terms() -> None:
     no_terms = unanswerable(verify_absent=[])
     assert draft.check_absent(no_terms, ABSENT_TEXTS, config(), script.ask, script.say) is None
     assert any("no verify_absent terms" in line for line in script.said)
+
+
+# --- finalize -------------------------------------------------------------------------
+
+
+def resolved(**change) -> draft.DraftQuestion:
+    q = lookup().model_copy(update={"status": "verified", **change})
+    gold = q.gold[0].model_copy(
+        update={"span": "the most frequent pair", "record_id": "acl:P16-1162", "section": "BPE"}
+    )
+    return q.model_copy(update={"gold": [gold]})
+
+
+def test_finalize_keeps_provenance_gists_and_behaviour_and_drops_draft_hints() -> None:
+    result = draft.finalize([resolved()])
+    row = result.questions[0].model_dump(mode="json")
+    assert row["origin"] == "llm_assisted" and row["provenance"] == "llm_drafted"
+    assert row["expected_behavior"] == "answer"
+    assert row["gold"] == [
+        {
+            "record_id": "acl:P16-1162",
+            "section": "BPE",
+            "span": "the most frequent pair",
+            "answer_gist": "It merges the most frequent pair.",
+        }
+    ]
+    assert row["question"] == DRAFT_LINE["question"] and row["notes"] == DRAFT_LINE["notes"]
+
+
+def test_finalize_takes_only_verified_and_refuses_unresolved_entries() -> None:
+    drafts = [
+        resolved(id="ok"),
+        resolved(id="draft", status="draft"),
+        lookup().model_copy(update={"id": "nospan", "status": "verified"}),
+        unanswerable(id="nokind", status="verified"),
+    ]
+    result = draft.finalize(drafts)
+    assert [q.id for q in result.questions] == ["ok"]
+    assert result.unverified == ["draft"]
+    assert "no span yet" in result.refused["nospan"]
+    assert "unanswerable_kind" in result.refused["nokind"]
+
+
+def test_finalize_holds_back_a_conversation_with_an_unready_turn() -> None:
+    turn1 = resolved(id="C1-T1", conversation_id="C1", turn=1)
+    turn2 = resolved(
+        id="C1-T2", type="followup", conversation_id="C1", turn=2, oracle_rewrite="What does BPE?"
+    )
+    result = draft.finalize([turn1, turn2.model_copy(update={"status": "draft"})])
+    assert result.questions == [] and result.held == {"C1": ["C1-T1"]}
+    assert [q.id for q in draft.finalize([turn1, turn2]).questions] == ["C1-T1", "C1-T2"]
+
+
+def test_finalized_questions_pass_the_validator_spans_map(corpus, repo_config_path) -> None:
+    from rag.common.config import load_config
+    from rag.eval.validate import validate
+
+    questions = draft.finalize([resolved()]).questions
+    report = validate(
+        questions, corpus.texts, {"acl:P16-1162": True}, load_config(repo_config_path).eval
+    )
+    assert not [e for e in report.errors if not e.startswith("mix:")]
+
+
+def test_finalize_cli_never_overwrites_an_eval_set_without_force(
+    tmp_path: Path, repo_config_path: Path
+) -> None:
+    import yaml
+    from typer.testing import CliRunner
+
+    from rag.cli import app
+
+    config = yaml.safe_load(repo_config_path.read_text(encoding="utf-8"))
+    config["paths"]["eval"] = str(tmp_path)
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    existing = tmp_path / "questions.jsonl"
+    existing.write_text("Sharad's set\n", encoding="utf-8")
+    result = CliRunner().invoke(app, ["--config", str(config_path), "eval", "finalize"])
+    assert result.exit_code == 1 and "--force" in result.output
+    assert existing.read_text(encoding="utf-8") == "Sharad's set\n"

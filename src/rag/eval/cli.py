@@ -151,6 +151,34 @@ def absent(
 
 
 @app.command()
+def finalize(
+    ctx: typer.Context,
+    file: DraftFile = None,
+    force: Annotated[bool, typer.Option("--force", help="Overwrite an existing eval set")] = False,
+) -> None:
+    """Write eval/questions.jsonl from the draft entries marked status=verified, then validate."""
+    from rag.common.io import write_jsonl
+
+    config = get_config(ctx)
+    out = config.paths.eval / config.eval.questions_file
+    if out.exists() and not force:
+        typer.echo(f"{out} exists: rerun with --force to replace it.", err=True)
+        raise typer.Exit(1)
+    result = draft_mod.finalize(draft_mod.read_draft(_draft_path(config, file)))
+    if not result.questions:
+        typer.echo(draft_mod.render_finalized(result, out))
+        typer.echo("Nothing verified yet: set status to verified in the draft first.", err=True)
+        raise typer.Exit(1)
+    write_jsonl(out, result.questions)
+    typer.echo(draft_mod.render_finalized(result, out))
+    indexed = {r.record_id: bool(r.included_in_index) for r in read_manifest(config.paths.manifest)}
+    report = validate_mod.validate_file(out, _chunk_texts(config), indexed, config.eval)
+    typer.echo(validate_mod.render(report, out))
+    if not report.ok:
+        raise typer.Exit(1)
+
+
+@app.command()
 def validate(
     ctx: typer.Context,
     file: Annotated[

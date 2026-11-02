@@ -35,6 +35,8 @@ from rag.eval.schemas import (
     AbsentCheck,
     ExpectedBehavior,
     GoldSpan,
+    Origin,
+    Question,
     QuestionType,
     UnanswerableKind,
 )
@@ -541,3 +543,91 @@ def check_absent(
         confirmed=answer == "c",
     )
     return q.model_copy(update={"absent_check": check})
+
+
+# --- finalize: verified drafts to eval/questions.jsonl ------------------------------
+
+
+class Finalized(StrictModel):
+    questions: list[Question]
+    unverified: list[str]  # status draft (or rejected): left out
+    refused: dict[str, str]  # verified but not ready: id -> why
+    held: dict[str, list[str]]  # conversation -> its verified turns held back
+
+
+def to_question(d: DraftQuestion) -> Question:
+    """The eval-set form: draft-only hints dropped; provenance, gists and checks kept."""
+    missing = [i + 1 for i, g in enumerate(d.gold) if not (g.span and g.record_id)]
+    if missing:
+        raise ValueError(f"gold {missing} has no span yet (rag eval resolve)")
+    return Question(
+        id=d.id,
+        type=d.type,
+        question=d.question,
+        conversation_id=d.conversation_id,
+        turn=d.turn,
+        oracle_rewrite=d.oracle_rewrite,
+        answerable=d.answerable,
+        unanswerable_kind=d.unanswerable_kind,
+        gold=[
+            GoldSpan(
+                record_id=g.record_id, section=g.section, span=g.span, answer_gist=g.answer_gist
+            )
+            for g in d.gold
+            if g.span and g.record_id
+        ],
+        duplicate_sensitive=d.duplicate_sensitive,
+        restatement_notes=d.restatement_notes,
+        # An LLM drafted it and Sharad verified each span by hand (Origin's definition).
+        origin=Origin.LLM_ASSISTED if d.provenance else Origin.HAND,
+        provenance=d.provenance,
+        expected_behavior=d.expected_behavior,
+        absent_check=d.absent_check,
+        notes=d.notes,
+    )
+
+
+def finalize(drafts: Sequence[DraftQuestion]) -> Finalized:
+    ready: dict[str, Question] = {}
+    unverified: list[str] = []
+    refused: dict[str, str] = {}
+    for d in drafts:
+        if d.status != "verified":
+            unverified.append(d.id)
+            continue
+        try:
+            ready[d.id] = to_question(d)
+        except ValueError as exc:  # pydantic's ValidationError is a ValueError
+            refused[d.id] = " ".join(str(exc).split())
+    # A conversation goes in whole or not at all: a missing turn would break
+    # the turn order the validator checks, and follow-ups need their history.
+    held: dict[str, list[str]] = {}
+    turns: dict[str, list[DraftQuestion]] = defaultdict(list)
+    for d in drafts:
+        if d.conversation_id:
+            turns[d.conversation_id].append(d)
+    for conversation, members in turns.items():
+        if any(m.id not in ready for m in members):
+            held[conversation] = [m.id for m in members if m.id in ready]
+            for m in members:
+                ready.pop(m.id, None)
+    order = [d.id for d in drafts]
+    return Finalized(
+        questions=sorted(ready.values(), key=lambda q: order.index(q.id)),
+        unverified=unverified,
+        refused=refused,
+        held={c: ids for c, ids in held.items() if ids},
+    )
+
+
+def render_finalized(result: Finalized, path: Path) -> str:
+    lines = [f"{len(result.questions)} questions -> {path}"]
+    if result.unverified:
+        lines.append(f"Not verified (left out): {', '.join(result.unverified)}")
+    for qid, why in result.refused.items():
+        lines.append(f"Refused {qid}: {why}")
+    for conversation, ids in result.held.items():
+        lines.append(
+            f"Held back conversation {conversation} (a turn isn't ready): {', '.join(ids)}"
+        )
+    return "\n".join(lines)
