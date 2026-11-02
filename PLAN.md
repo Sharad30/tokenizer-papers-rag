@@ -478,6 +478,8 @@ Each fix gets a unit test from a real failing case. **Exit:** the Parse page's t
 
 **Exit.** Result files, transcript and failure analysis committed.
 
+**Done 2026-11-02** (D-046, `notes/phase-8-answers.md`): `rag eval answers|label|answer-report|transcript`. Sharad is the judge (no LLM judge, so no judge audit: single-annotator limit noted). First run on the 28 gold questions: unanswerable 5/5 refused (by the model), false abstention 1/23, uncited claims 38%, follow-up paper recall system 0.33 vs oracle 0.67. Transcript in `docs/phase8-transcript.md`. Open: Sharad's labels, then the labelled report and his failure analysis (`docs/phase8-failures.md`).
+
 ---
 
 ## Phase 9: Deep dives (exploration track)
