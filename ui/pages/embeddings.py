@@ -94,18 +94,22 @@ if result is None:
     )
 else:
     k = config.eval.recall_k
-    rk, mrr = f"recall@{k}", f"mrr@{config.eval.mrr_cutoff}"
+    rk, prk, mrr = f"recall@{k}", f"paper_recall@{k}", f"mrr@{config.eval.mrr_cutoff}"
     labels = sorted({label for c in result.conditions.values() for label in c.sets})
+
+    def fmt(s, signed: bool = False) -> str:
+        if s is None:
+            return "–"
+        sign = "+" if signed else ""
+        return f"{s.mean:{sign}.3f} [{s.ci_low:{sign}.2f}, {s.ci_high:{sign}.2f}]"
+
     rows = []
     for c in result.conditions.values():
         row = {"condition": c.label}
         for label in labels:
             overall = c.sets[label].result.aggregates.get("overall", {}) if label in c.sets else {}
-            for metric in (rk, mrr):
-                s = overall.get(metric)
-                row[f"{metric} ({label})"] = (
-                    f"{s.mean:.3f} [{s.ci_low:.2f}, {s.ci_high:.2f}]" if s else "–"
-                )
+            for metric in (rk, prk, mrr):
+                row[f"{metric} ({label})"] = fmt(overall.get(metric))
         dup = c.probe.get(f"dup@{config.eval.dup_k}")
         row[f"dup@{config.eval.dup_k}"] = f"{dup.mean:.2f}" if dup else "–"
         row["latency p50 / p95 (ms)"] = (
@@ -113,6 +117,12 @@ else:
         )
         rows.append(row)
     st.dataframe(rows, hide_index=True)
+    st.caption(
+        f"**{rk}**: share of a question's gold passages in the top {k} chunks. **{prk}**: "
+        "share of its gold papers (any copy) with any chunk there. When paper recall is "
+        "much higher, retrieval found the right paper but showed a different passage of it "
+        "(one chunk per paper is shown), or other papers that restate the answer."
+    )
     if result.comparison:
         cmp = result.comparison
         diff = cmp.diffs[rk]
@@ -124,20 +134,15 @@ else:
             "the questions can't separate them."
         )
     if result.pairs:
-        st.subheader("The comparisons the choice rests on")
+        st.subheader(f"The comparisons the choice rests on ({result.pairs[0].set})")
         st.dataframe(
             [
                 {
                     "a": result.conditions[p.a].label,
                     "b": result.conditions[p.b].label,
-                    f"{rk}, a − b": (
-                        f"{p.diffs[rk].mean:+.3f} "
-                        f"[{p.diffs[rk].ci_low:+.2f}, {p.diffs[rk].ci_high:+.2f}]"
-                    ),
-                    f"{mrr}, a − b": (
-                        f"{p.diffs[mrr].mean:+.3f} "
-                        f"[{p.diffs[mrr].ci_low:+.2f}, {p.diffs[mrr].ci_high:+.2f}]"
-                    ),
+                    f"{rk}, a − b": fmt(p.diffs.get(rk), signed=True),
+                    f"{prk}, a − b": fmt(p.diffs.get(prk), signed=True),
+                    f"{mrr}, a − b": fmt(p.diffs.get(mrr), signed=True),
                     "a higher / lower / equal": f"{p.wins} / {p.losses} / {p.ties}",
                 }
                 for p in result.pairs
