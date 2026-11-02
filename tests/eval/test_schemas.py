@@ -42,6 +42,17 @@ def test_valid_multi_paper() -> None:
     [
         ({"gold": []}, "no gold"),
         ({"answerable": False, "unanswerable_kind": "not_covered"}, "has gold"),
+        ({"expected_behavior": "abstain"}, "answerable=true"),
+        (
+            {
+                "type": "unanswerable",
+                "answerable": False,
+                "gold": [],
+                "unanswerable_kind": "not_covered",
+                "expected_behavior": "correct_premise",
+            },
+            "needs unanswerable_kind false_premise",
+        ),
         ({"unanswerable_kind": "not_covered"}, "unanswerable_kind"),
         ({"type": "unanswerable", "answerable": True}, "type unanswerable"),
         ({"type": "followup", "conversation_id": "c1", "turn": 2}, "oracle_rewrite"),
@@ -59,3 +70,28 @@ def test_valid_multi_paper() -> None:
 def test_inconsistent_questions_are_rejected(change: dict, message: str) -> None:
     with pytest.raises(ValidationError, match=message):
         make(**change)
+
+
+def test_false_premise_may_carry_the_correcting_evidence() -> None:
+    q = make(
+        type="unanswerable",
+        answerable=False,
+        unanswerable_kind="false_premise",
+        expected_behavior="correct_premise",
+        gold=[{**GOLD_A, "answer_gist": "It uses 32k merges, not 8k."}],
+    )
+    assert q.gold[0].answer_gist.startswith("It uses")
+
+
+def test_drafted_question_keeps_its_provenance_and_absent_check() -> None:
+    q = make(
+        type="unanswerable",
+        answerable=False,
+        gold=[],
+        unanswerable_kind="not_covered",
+        expected_behavior="abstain",
+        origin="llm_assisted",
+        provenance="llm_drafted",
+        absent_check={"terms": ["RLHF"], "hits": {"RLHF": 0}, "confirmed": True},
+    )
+    assert (q.provenance, q.absent_check.hits) == ("llm_drafted", {"RLHF": 0})

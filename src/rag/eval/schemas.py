@@ -6,6 +6,7 @@ conversation turns, the type mix) are checked by `rag eval validate`.
 """
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import Field, model_validator
 
@@ -38,11 +39,27 @@ class GoldSpan(StrictModel):
     """Evidence for an answer: verbatim text in one paper (D-022).
 
     Never a chunk id: chunk ids change whenever chunking does, the span doesn't.
+    For a false-premise question it is the evidence that corrects the premise.
     """
 
     record_id: str  # manifest id, e.g. "acl:P16-1162" or "arxiv:2105.13626"
     section: str | None = None  # for humans; checked against the chunk's section path
     span: str = Field(min_length=1)  # copied from chunk text (`rag eval find`)
+    # What a correct answer says, in the question writer's words: Phase 8's
+    # reference answer. Never used for retrieval scoring.
+    answer_gist: str | None = None
+
+
+ExpectedBehavior = Literal["answer", "abstain", "correct_premise"]
+
+
+class AbsentCheck(StrictModel):
+    """Sharad's check that an unanswerable question really isn't answered (D-045)."""
+
+    terms: list[str]
+    hits: dict[str, int]  # term -> matching chunks when checked
+    paper: str | None = None  # searched only this record, when set
+    confirmed: bool  # False: flagged for relabelling
 
 
 class Question(StrictModel):
@@ -62,6 +79,12 @@ class Question(StrictModel):
     duplicate_sensitive: bool = False
     restatement_notes: str | None = None
     origin: Origin = Origin.HAND
+    # Where a drafted question came from, kept verbatim (e.g. "llm_drafted", D-045).
+    provenance: str | None = None
+    # What the chatbot should do: answer, abstain, or answer by correcting the
+    # premise (Phase 8). Optional: derivable from answerable/unanswerable_kind.
+    expected_behavior: ExpectedBehavior | None = None
+    absent_check: AbsentCheck | None = None
     notes: str | None = None
 
     @model_validator(mode="after")
@@ -72,8 +95,16 @@ class Question(StrictModel):
             problems.append("type unanswerable but answerable=true")
         if self.answerable and not self.gold:
             problems.append("answerable but no gold spans")
-        if not self.answerable and self.gold:
-            problems.append("not answerable but has gold spans")
+        # A false premise is corrected by evidence (D-045); other kinds have none.
+        false_premise = self.unanswerable_kind == UnanswerableKind.FALSE_PREMISE
+        if not self.answerable and self.gold and not false_premise:
+            problems.append("not answerable but has gold spans (only false_premise may)")
+        if self.expected_behavior == "answer" and not self.answerable:
+            problems.append("expected_behavior answer but answerable=false")
+        if self.expected_behavior in ("abstain", "correct_premise") and self.answerable:
+            problems.append(f"expected_behavior {self.expected_behavior} but answerable=true")
+        if self.expected_behavior == "correct_premise" and not false_premise:
+            problems.append("correct_premise needs unanswerable_kind false_premise")
         if (self.unanswerable_kind is None) == (not self.answerable):
             problems.append("unanswerable_kind is required exactly when answerable=false")
         if (self.conversation_id is None) != (self.turn is None):
