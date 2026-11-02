@@ -8,6 +8,7 @@ import typer
 from rag.collect.manifest import read_manifest
 from rag.common.cli import LimitOption, get_config
 from rag.common.config import Config
+from rag.eval import draft as draft_mod
 from rag.eval import find as find_mod
 from rag.eval import validate as validate_mod
 from rag.eval.ablation import run_ablation
@@ -47,6 +48,40 @@ def find(
         all_words=all_words,
     )
     typer.echo(find_mod.render(result, text))
+
+
+def _corpus(config: Config) -> draft_mod.Corpus:
+    """Manifest + chunks, with each work's canonical record when the works exist."""
+    from rag.retrieve.collapse import WorkMap, WorksUnavailable
+
+    try:
+        canonical = WorkMap.load(config.paths.works, step_dir(config, "chunk") / CHUNKS).canonical
+    except WorksUnavailable:
+        canonical = set()
+    return draft_mod.Corpus(read_manifest(config.paths.manifest), _chunk_texts(config), canonical)
+
+
+def _draft_path(config: Config, file: Path | None) -> Path:
+    path = file or config.paths.eval / config.eval.draft.file
+    if not path.is_file():
+        typer.echo(f"No draft at {path}.", err=True)
+        raise typer.Exit(1)
+    return path
+
+
+DraftFile = Annotated[Path | None, typer.Option(help="Draft file (default: eval.draft.file)")]
+
+
+@app.command("check-papers")
+def check_papers(ctx: typer.Context, file: DraftFile = None) -> None:
+    """Match every drafted gold paper to the corpus: by arXiv id, other id, then title."""
+    config = get_config(ctx)
+    questions = draft_mod.read_draft(_draft_path(config, file))
+    corpus = _corpus(config)
+    rows = draft_mod.check_papers(questions, corpus, config.eval.draft.title_min_ratio)
+    typer.echo(draft_mod.render_check(rows, corpus))
+    if any(m.status in ("missing", "not_indexed") for _, _, m in rows):
+        raise typer.Exit(1)
 
 
 @app.command()

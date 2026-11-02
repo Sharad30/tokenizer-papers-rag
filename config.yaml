@@ -226,6 +226,13 @@ eval:
   max_span_words: 60        # warn above: long spans risk crossing a chunk boundary
   find:
     max_hits: 30
+  draft:                      # LLM-drafted questions -> gold by hand (D-045)
+    file: questions.draft.jsonl
+    title_min_ratio: 90       # check-papers: fuzzy title fallback when no id matches
+    max_candidates: 15        # resolve: passages listed per gold entry
+    excerpt_chars: 160        # either side of the first matching term
+    absent_max_excerpts: 5    # absent: example hits shown per term
+    short_term_chars: 3       # "VQ", "$": whole-word matches only
   # Retrieval metrics (D-031)
   recall_k: 5
   mrr_cutoff: 10

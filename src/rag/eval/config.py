@@ -13,6 +13,17 @@ class FindConfig(StrictModel):
     max_hits: int = Field(ge=1)  # `rag eval find` stops listing after this many
 
 
+class DraftConfig(StrictModel):
+    """LLM-drafted questions turned into gold by hand (D-045)."""
+
+    file: str  # under paths.eval
+    title_min_ratio: float = Field(ge=0, le=100)  # fuzzy title fallback in check-papers
+    max_candidates: int = Field(ge=1)  # passages `resolve` lists per gold entry
+    excerpt_chars: int = Field(ge=1)  # shown either side of a match
+    absent_max_excerpts: int = Field(ge=0)  # excerpts per term in the absent check
+    short_term_chars: int = Field(ge=1)  # terms this short match whole words only
+
+
 class BootstrapConfig(StrictModel):
     samples: int = Field(ge=100)
     seed: int
@@ -75,6 +86,7 @@ class EvalConfig(StrictModel):
     # Longer spans are more likely to cross a sentence and so a chunk boundary.
     max_span_words: int = Field(ge=1)
     find: FindConfig
+    draft: DraftConfig
     # Phase 4 metrics (D-031).
     recall_k: int = Field(ge=1)
     mrr_cutoff: int = Field(ge=1)
