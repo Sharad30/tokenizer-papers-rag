@@ -114,6 +114,43 @@ def resolve(
 
 
 @app.command()
+def absent(
+    ctx: typer.Context,
+    file: DraftFile = None,
+    id: Annotated[str | None, typer.Option("--id", help="Only this question")] = None,  # noqa: A002
+    paper: Annotated[
+        str | None, typer.Option(help="Search only this record (a question about one paper)")
+    ] = None,
+    write: Annotated[
+        bool, typer.Option("--write/--no-write", help="Ask to confirm and record each check")
+    ] = True,
+) -> None:
+    """Search the corpus for each unanswerable question's verify_absent terms."""
+    config = get_config(ctx)
+    path = _draft_path(config, file)
+    questions = draft_mod.read_draft(path)
+    texts = _chunk_texts(config)
+    for qi, q in enumerate(questions):
+        if q.answerable or (id and q.id != id):
+            continue
+        if not write:
+            hits = draft_mod.absent_hits(q.verify_absent, texts, config.eval.draft, paper)
+            typer.echo(draft_mod.render_absent(q, hits, paper))
+            continue
+        checked = draft_mod.check_absent(
+            q,
+            texts,
+            config.eval.draft,
+            ask=lambda prompt: typer.prompt(prompt, default="", show_default=False),
+            say=typer.echo,
+            paper=paper,
+        )
+        if checked is not None:
+            questions[qi] = checked
+            draft_mod.write_draft(path, questions)
+
+
+@app.command()
 def validate(
     ctx: typer.Context,
     file: Annotated[

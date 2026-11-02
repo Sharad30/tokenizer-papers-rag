@@ -277,3 +277,52 @@ def test_resolve_asks_for_the_unanswerable_kind_and_never_guesses(corpus: draft.
     script = Script("1")
     draft.resolve(questions, corpus, config(), script.ask, script.say, script.save)
     assert questions[0].unanswerable_kind == "not_covered"
+
+
+# --- absent ---------------------------------------------------------------------------
+
+ABSENT_TEXTS = ChunkTexts(
+    [
+        chunk("p:a", 0, "We train a VQ codebook."),
+        chunk("p:a", 1, "VQA accuracy improves; RLHF is not used."),
+        chunk("p:b", 0, "Training cost $5 per run with RLHF."),
+    ]
+)
+
+
+def test_absent_hits_count_chunks_per_paper_and_short_terms_match_whole_words() -> None:
+    hits = draft.absent_hits(["VQ", "rlhf", "$", "Swahili"], ABSENT_TEXTS, config())
+    by = {h.term: h for h in hits}
+    assert (by["VQ"].chunks, by["VQ"].papers) == (1, {"p:a": 1})  # not "VQA"
+    assert by["rlhf"].papers == {"p:a": 1, "p:b": 1}
+    assert by["$"].chunks == 1  # a symbol matches anywhere
+    assert by["Swahili"].chunks == 0 and by["Swahili"].examples == []
+
+
+def test_absent_hits_can_be_limited_to_one_paper() -> None:
+    hits = draft.absent_hits(["rlhf"], ABSENT_TEXTS, config(), paper="p:b")
+    assert hits[0].papers == {"p:b": 1}
+
+
+def unanswerable(**change) -> draft.DraftQuestion:
+    row = {**DRAFT_LINE, "type": "unanswerable", "answerable": False, "gold": []}
+    row.update({"expected_behavior": "abstain", "verify_absent": ["Swahili", "RLHF"], **change})
+    return draft.DraftQuestion.model_validate(row)
+
+
+def test_absent_check_records_sharads_verdict_and_hit_counts() -> None:
+    script = Script("c")
+    q = draft.check_absent(unanswerable(), ABSENT_TEXTS, config(), script.ask, script.say)
+    assert q.absent_check.confirmed is True
+    assert q.absent_check.hits == {"Swahili": 0, "RLHF": 2}
+    flagged = draft.check_absent(unanswerable(), ABSENT_TEXTS, config(), Script("r").ask, print)
+    assert flagged.absent_check.confirmed is False
+    assert flagged.question == DRAFT_LINE["question"]  # flagging never edits the question
+
+
+def test_absent_check_writes_nothing_on_skip_or_without_terms() -> None:
+    assert draft.check_absent(unanswerable(), ABSENT_TEXTS, config(), Script("").ask, print) is None
+    script = Script("c")
+    no_terms = unanswerable(verify_absent=[])
+    assert draft.check_absent(no_terms, ABSENT_TEXTS, config(), script.ask, script.say) is None
+    assert any("no verify_absent terms" in line for line in script.said)

@@ -430,6 +430,12 @@ def resolve(
                 questions[qi] = q = q.model_copy(update={"unanswerable_kind": kind})
                 save(questions)
                 changed += 1
+        if not q.answerable and q.verify_absent and (q.absent_check is None or only):
+            checked = check_absent(q, corpus.texts, config, ask, say)
+            if checked is not None:
+                questions[qi] = q = checked
+                save(questions)
+                changed += 1
         for gi, g in enumerate(q.gold):
             if g.span is not None and not only:
                 continue
@@ -445,3 +451,93 @@ def resolve(
                 save(questions)
                 changed += 1
     return changed
+
+
+# --- absent: is an unanswerable question really unanswered? --------------------------
+
+
+class TermHits(StrictModel):
+    term: str
+    chunks: int  # matching chunks
+    papers: dict[str, int]  # record_id -> matching chunks, in corpus order
+    examples: list[tuple[str, str]]  # (chunk_id, excerpt), the first few
+
+
+def term_pattern(term: str, short_term_chars: int) -> re.Pattern[str]:
+    """Short alphanumeric terms ("VQ") match whole words only, so "VQA" doesn't count."""
+    needle = normalise(term)
+    if len(needle) <= short_term_chars and needle.isalnum():
+        return re.compile(rf"(?<!\w){re.escape(needle)}(?!\w)")
+    return re.compile(re.escape(needle))
+
+
+def absent_hits(
+    terms: Sequence[str],
+    texts: ChunkTexts,
+    config: DraftConfig,
+    paper: str | None = None,
+) -> list[TermHits]:
+    pool = texts.paper(paper) if paper else texts
+    out = []
+    for term in terms:
+        pattern = term_pattern(term, config.short_term_chars)
+        papers: dict[str, int] = defaultdict(int)
+        examples: list[tuple[str, str]] = []
+        for ic in pool:
+            found = pattern.search(ic.norm)
+            if not found:
+                continue
+            papers[ic.chunk.record_id] += 1
+            if len(examples) < config.absent_max_excerpts:
+                lo = max(0, found.start() - config.excerpt_chars)
+                examples.append(
+                    (ic.chunk.chunk_id, ic.norm[lo : found.end() + config.excerpt_chars])
+                )
+        out.append(
+            TermHits(term=term, chunks=sum(papers.values()), papers=dict(papers), examples=examples)
+        )
+    return out
+
+
+def render_absent(q: DraftQuestion, hits: list[TermHits], paper: str | None) -> str:
+    scope = f"in {paper}" if paper else "in the whole corpus"
+    lines = [f"\n=== {q.id} · {q.unanswerable_kind or 'kind not set'} · {q.question}"]
+    if not hits:
+        lines.append("  no verify_absent terms: add some to the draft to check this one.")
+        return "\n".join(lines)
+    for h in hits:
+        lines.append(f"  {h.term!r}: {h.chunks} chunks in {len(h.papers)} papers {scope}")
+        for chunk_id, excerpt in h.examples:
+            lines.append(f"    {chunk_id}: …{excerpt}…")
+    lines.append(
+        "  Zero hits supports 'not covered' but doesn't prove it (a paraphrase could "
+        "answer it); many hits for a generic term say little: narrow with --paper."
+    )
+    return "\n".join(lines)
+
+
+def check_absent(
+    q: DraftQuestion,
+    texts: ChunkTexts,
+    config: DraftConfig,
+    ask: Ask,
+    say: Say,
+    paper: str | None = None,
+) -> DraftQuestion | None:
+    """Show the hits; Sharad confirms or flags the label. None: nothing to record."""
+    hits = absent_hits(q.verify_absent, texts, config, paper)
+    say(render_absent(q, hits, paper))
+    if not hits:
+        return None
+    answer = ask("  c confirm unanswerable · r flag for relabel · enter skip> ").strip()
+    if answer not in ("c", "r"):
+        return None
+    if answer == "r":
+        say("  flagged: edit the question or its labels in the draft by hand.")
+    check = AbsentCheck(
+        terms=list(q.verify_absent),
+        hits={h.term: h.chunks for h in hits},
+        paper=paper,
+        confirmed=answer == "c",
+    )
+    return q.model_copy(update={"absent_check": check})
