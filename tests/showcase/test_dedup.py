@@ -89,3 +89,28 @@ def test_embeddings_page_without_indexes_says_so(config: Config, monkeypatch) ->
     assert not at.exception
     assert any("No comparison yet" in i.value for i in at.info)
     assert any("Live queries need the indexes" in i.value for i in at.info)
+
+
+def test_latest_ablation_reads_recall_per_question_set(tmp_path) -> None:
+    import json
+
+    from rag.showcase.dedup import latest_ablation
+
+    probe = {
+        "dup@5": {"mean": 0.0, "ci_low": 0.0, "ci_high": 0.0},
+        "copy_dup@5": {"mean": 0.0},
+        "copy_dup@5_resolver": {"mean": 0.0},
+    }
+    overall = {"recall@5": {"mean": 0.2}, "paper_recall@5": {"mean": 0.5}, "mrr@10": {"mean": 0.1}}
+    old = {"label": "old", "probe": probe}  # written before any questions existed
+    new = {
+        **old,
+        "label": "new",
+        "sets": {"gold": {"result": {"aggregates": {"overall": overall}}}},
+    }
+    raw = {"git_commit": "abc", "n_queries": 1, "labelled_pairs": 0}
+    raw["conditions"] = {"old": old, "new": new}
+    (tmp_path / "2026-11-02-dedup-ablation.json").write_text(json.dumps(raw), encoding="utf-8")
+    rows = latest_ablation(tmp_path).rows
+    assert rows[0].recall == {}
+    assert rows[1].recall == {"gold": {"recall@5": 0.2, "paper_recall@5": 0.5}}

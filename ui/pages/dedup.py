@@ -276,6 +276,11 @@ ablation = data.ablation
 if ablation is None:
     st.info("No ablation results yet: run `uv run rag eval ablate --name dedup`.")
 else:
+    sets = sorted({label for row in ablation.rows for label in row.recall})
+
+    def _num(value: float | None) -> str:
+        return "–" if value is None else f"{value:.3f}"
+
     st.dataframe(
         [
             {
@@ -283,17 +288,31 @@ else:
                 "dup@5": f"{row.dup:.3f} [{row.dup_low:.3f}, {row.dup_high:.3f}]",
                 "copy_dup@5": f"{row.copy_dup:.3f}",
                 "copy_dup@5 (resolver's view)": f"{row.copy_dup_resolver:.3f}",
+                **{
+                    f"{metric} ({label})": _num(row.recall.get(label, {}).get(metric))
+                    for label in sets
+                    for metric in ("recall@5", "paper_recall@5")
+                },
             }
             for row in ablation.rows
         ],
         hide_index=True,
     )
+    if sets:
+        st.markdown(
+            "**What the cap costs.** Recall@5 counts a question's gold passage in the top 5; "
+            "paper recall counts any chunk of a gold paper. Hiding non-canonical copies frees "
+            "slots and raises recall; the per-work cap removes every duplicate but also the "
+            "second chunk of a paper, so the exact gold passage drops out while paper recall "
+            "stays put. D-041 records the numbers; cap 1 vs 2 is an open experiment."
+        )
     st.caption(
         f"`results/{ablation.file}` (commit {ablation.git_commit[:8]}): {ablation.n_queries} "
         "probe queries written for the probe, not eval gold. **dup@5** is the share of top-5 "
         "slots whose paper already appeared higher, a second chunk of one paper included, so "
-        "a per-work cap of 1 makes it 0 by construction; its cost can only show in recall, "
-        "once the eval questions exist. **copy_dup@5** counts only another record of the "
+        "a per-work cap of 1 makes it 0 by construction. Recall columns come from the question "
+        "sets named (gold: eval/gold/questions.jsonl; silver: LLM-written, D-044). "
+        "**copy_dup@5** counts only another record of the "
         f"paper. Both are judged by identifiers + {ablation.labelled_pairs} labelled pairs "
         "(D-042): the resolver's own view is shown beside them, but it can't grade itself."
     )

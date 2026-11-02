@@ -74,6 +74,9 @@ class AblationRow(StrictModel):
     dup_high: float
     copy_dup: float
     copy_dup_resolver: float
+    # question set ("gold", "silver") -> {"recall@5": mean, "paper_recall@5": mean};
+    # empty for results written before any questions existed.
+    recall: dict[str, dict[str, float]] = {}
 
 
 class Ablation(StrictModel):
@@ -204,6 +207,9 @@ def _restatement_examples(
     return out
 
 
+RECALL_METRICS = ("recall@5", "paper_recall@5")
+
+
 def latest_ablation(results_dir: Path) -> Ablation | None:
     """The newest committed dedup ablation, by file name (dates sort)."""
     files = sorted(results_dir.glob("*-dedup-ablation.json"))
@@ -222,6 +228,7 @@ def latest_ablation(results_dir: Path) -> Ablation | None:
                 dup_high=dup["ci_high"],
                 copy_dup=probe["copy_dup@5"]["mean"],
                 copy_dup_resolver=probe["copy_dup@5_resolver"]["mean"],
+                recall=_recall(c),
             )
         )
     return Ablation(
@@ -231,6 +238,14 @@ def latest_ablation(results_dir: Path) -> Ablation | None:
         labelled_pairs=raw["labelled_pairs"],
         rows=rows,
     )
+
+
+def _recall(condition: dict) -> dict[str, dict[str, float]]:
+    out = {}
+    for label, scored in condition.get("sets", {}).items():
+        overall = scored["result"]["aggregates"].get("overall", {})
+        out[label] = {m: overall[m]["mean"] for m in RECALL_METRICS if m in overall}
+    return out
 
 
 def work_key(work: WorkExample) -> str:
